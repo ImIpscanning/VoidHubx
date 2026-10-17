@@ -1988,6 +1988,39 @@ local function InstallOnionBranding()
         rim.Parent = border
         border.Parent = label
         label.Parent = object
+        if hasImage then
+            label.ImageTransparency=0
+            label.Visible=true
+            local fallback=Instance.new("TextLabel")
+            fallback.Name="VoidLogoFallback"
+            fallback.Size=UDim2.fromScale(1,1)
+            fallback.BackgroundTransparency=1
+            fallback.Text="V"
+            fallback.TextColor3=Color3.new(1,1,1)
+            fallback.TextScaled=true
+            fallback.Font=Enum.Font.GothamBold
+            fallback.Active=false
+            fallback.ZIndex=label.ZIndex+1
+            fallback.Parent=label
+            local function refreshLoaded()
+                if fallback.Parent then fallback.Visible=not label.IsLoaded end
+            end
+            connect(label:GetPropertyChangedSignal("IsLoaded"),refreshLoaded)
+            refreshLoaded()
+            local assetId=imageId:match("rbxassetid://(%d+)") or imageId:match("[?&]id=(%d+)")
+            task.delay(5,function()
+                if not label.Parent or label.IsLoaded then return end
+                if assetId then
+                    label.Image="rbxthumb://type=Asset&id="..assetId.."&w=420&h=420"
+                    refreshLoaded()
+                end
+                task.delay(8,function()
+                    if label.Parent and not label.IsLoaded then
+                        warn("[VoidHub] Logo could not load as image or asset thumbnail. Check image ID, asset permissions and moderation status: "..tostring(assetId or imageId))
+                    end
+                end)
+            end)
+        end
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(1, 0)
         corner.Parent = label
@@ -2112,7 +2145,23 @@ local function InstallOnionBranding()
         if object:IsA("ImageLabel") or object:IsA("ImageButton") then
             connect(object:GetPropertyChangedSignal("AbsoluteSize"), update)
         end
-        -- Apply once so original Config color pickers remain editable.
+        -- Follow late native icon colors and hover/selection transitions.
+        local colorProperties={}
+        if object:IsA("ImageLabel") or object:IsA("ImageButton") then
+            table.insert(colorProperties,"ImageColor3")
+        end
+        if isText(object) then table.insert(colorProperties,"TextColor3") end
+        if object:IsA("UIGradient") then table.insert(colorProperties,"Color") end
+        for _,property in ipairs(colorProperties) do
+            local key=property
+            connect(object:GetPropertyChangedSignal(key),function()
+                if styling[object] or currentTheme=="Custom / Config" or not roots[root] then return end
+                if object.Name=="OnionBrandMark" or object.Name=="OnionIceGradient" then return end
+                if originals[object] then originals[object][key]=object[key] end
+                applied[object]=nil
+                style(object)
+            end)
+        end
         update()
     end
     enroll = function(root)
