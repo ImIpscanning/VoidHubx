@@ -2023,15 +2023,24 @@ local function InstallOnionBranding()
         ["Credits"]={{{5,4},{19,4},{19,21},{5,21},{5,4}},{{9,9},{15,9}},{{9,14},{15,14}},{{9,18},{13,18}}},
     }
     iconPaths.Misc=iconPaths["Misc."]
+    iconPaths.Config=iconPaths["Config."]
     local function restyleFeatureIcon(object)
         if not (object:IsA("ImageLabel") or object:IsA("ImageButton")) then return end
         if object.Name=="OnionBrandMark" or object:FindFirstChild("OnionBrandMark") then return end
+        local assetId=object.Image:match("rbxassetid://(%d+)") or object.Image:match("[?&]id=(%d+)")
+        local exactPaths
+        if assetId=="81151604784579" then
+            exactPaths=iconPaths["Config."]
+        elseif assetId=="95968409641902" then
+            exactPaths={{{5,5},{12,12},{19,5}},{{5,12},{12,19},{19,12}}}
+        end
         local size=object.AbsoluteSize
-        if size.X<8 or size.Y<8 or size.X>34 or size.Y>34 then return end
+        if not exactPaths and (size.X<8 or size.Y<8 or size.X>34 or size.Y>34) then return end
         if object:FindFirstChild("VoidFeatureIcon") then return end
-        local paths
+        local paths=exactPaths
         local parent=object.Parent
-        for level=1,2 do
+        for level=1,4 do
+            if paths then break end
             if not parent or parent:IsA("ScreenGui") then break end
             local matches={}
             if parent:IsA("TextButton") or parent:IsA("TextLabel") then
@@ -2043,7 +2052,11 @@ local function InstallOnionBranding()
                     local text=child.Text:gsub("<[^>]+>",""):match("^%s*(.-)%s*$")
                     local dx=child.AbsolutePosition.X-(object.AbsolutePosition.X+size.X)
                     local dy=math.abs(child.AbsolutePosition.Y+child.AbsoluteSize.Y/2-object.AbsolutePosition.Y-size.Y/2)
-                    if iconPaths[text] and dx>=-4 and dx<=24 and dy<=math.max(size.Y,child.AbsoluteSize.Y)/2 then matches[text]=true end
+                    local configOverlap=(text=="Config." or text=="Config") and child.AbsoluteSize.X<=160
+                        and object.AbsolutePosition.X>=child.AbsolutePosition.X-24
+                        and object.AbsolutePosition.X<=child.AbsolutePosition.X+child.AbsoluteSize.X/2
+                    if iconPaths[text] and ((dx>=-4 and dx<=24) or configOverlap)
+                        and dy<=math.max(size.Y,child.AbsoluteSize.Y)/2 then matches[text]=true end
                 end
             end
             local name,count=nil,0
@@ -2057,17 +2070,30 @@ local function InstallOnionBranding()
             local name=object.Name:lower()
             local arrow=name:find("chevron",1,true) or name:find("arrow",1,true)
             local host=object.Parent
-            if not arrow and host and host:IsA("GuiObject") then
-                local hs=host.AbsoluteSize
-                local right=host.AbsolutePosition.X+hs.X-object.AbsolutePosition.X-size.X
-                local input=host:IsA("TextBox")
-                for _,child in ipairs(host:GetChildren()) do
-                    if child:IsA("TextBox") then input=true end
+            for level=1,3 do
+                if arrow or not host or not host:IsA("GuiObject") then break end
+                -- Dropdown values are labels/buttons, not necessarily TextBoxes.
+                -- Match the outlined value field directly to the left of the icon.
+                for _,field in ipairs(host:GetDescendants()) do
+                    if field:IsA("GuiObject") and field~=object then
+                        local fs=field.AbsoluteSize
+                        local gap=object.AbsolutePosition.X-field.AbsolutePosition.X-fs.X
+                        local dy=math.abs(field.AbsolutePosition.Y+fs.Y/2-object.AbsolutePosition.Y-size.Y/2)
+                        local outlined=field:FindFirstChildOfClass("UIStroke")~=nil or field.BorderSizePixel>0
+                        local hasText=field:IsA("TextLabel") or field:IsA("TextButton") or field:IsA("TextBox")
+                        if not hasText then
+                            for _,item in ipairs(field:GetChildren()) do
+                                if isText(item) then hasText=true;break end
+                            end
+                        end
+                        if outlined and hasText and fs.X>=45 and fs.X<=220 and fs.Y>=15 and fs.Y<=50
+                            and gap>=-4 and gap<=24 and dy<=10 then arrow=true;break end
+                    end
                 end
-                arrow=input and hs.X>=80 and hs.Y<=60 and right>=-4 and right<=28
+                host=host.Parent
             end
             if not arrow then return end
-            paths={{{7,9},{12,4},{17,9}},{{7,15},{12,20},{17,15}}}
+            paths={{{5,5},{12,12},{19,5}},{{5,12},{12,19},{19,12}}}
         end
         local overlay=Instance.new("Frame")
         overlay.Name="VoidFeatureIcon";overlay.BackgroundTransparency=1
@@ -2232,7 +2258,10 @@ local function InstallOnionBranding()
             if object.Text == "Theme Manager" then scheduleThemeManager(root) end
         end
         if object:IsA("ImageLabel") or object:IsA("ImageButton") then
+            connect(object:GetPropertyChangedSignal("Image"), update)
             connect(object:GetPropertyChangedSignal("AbsoluteSize"), update)
+            connect(object:GetPropertyChangedSignal("AbsolutePosition"), update)
+            task.defer(function() if object.Parent then update() end end)
         end
         -- Follow late native icon colors and hover/selection transitions.
         local colorProperties={}
