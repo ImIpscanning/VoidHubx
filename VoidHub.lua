@@ -1833,7 +1833,7 @@ local OnionBundle, OnionConfig = ...
 local OnionCreatingInterface = false
 local VoidThemeController = {}
 local function InstallOnionBranding()
-    local roots, watched, tracked = {}, {}, {}
+    local roots, watched, tracked = setmetatable({}, {__mode="k"}), setmetatable({}, {__mode="k"}), setmetatable({}, {__mode="k"})
     local connections = {}
     local styling = setmetatable({}, {__mode = "k"})
     local applied = setmetatable({}, {__mode = "k"})
@@ -2028,6 +2028,8 @@ local function InstallOnionBranding()
         if not (object:IsA("ImageLabel") or object:IsA("ImageButton")) then return end
         if object.Name=="OnionBrandMark" or object:FindFirstChild("OnionBrandMark") then return end
         local assetId=object.Image:match("rbxassetid://(%d+)") or object.Image:match("[?&]id=(%d+)")
+        -- Preserve the native switch thumb and both window-size icons.
+        if assetId=="12266946128" or assetId=="92966930061759" or assetId=="124967485209478" then return end
         local exactPaths
         if assetId=="81151604784579" then
             exactPaths=iconPaths["Config."]
@@ -2064,37 +2066,7 @@ local function InstallOnionBranding()
             if count==1 then paths=iconPaths[name];break end
             parent=parent.Parent
         end
-        if not paths then
-            -- Native dropdowns may bake their blue color into the image pixels.
-            -- Replace only named chevrons or right-edge icons in input fields.
-            local name=object.Name:lower()
-            local arrow=name:find("chevron",1,true) or name:find("arrow",1,true)
-            local host=object.Parent
-            for level=1,3 do
-                if arrow or not host or not host:IsA("GuiObject") then break end
-                -- Dropdown values are labels/buttons, not necessarily TextBoxes.
-                -- Match the outlined value field directly to the left of the icon.
-                for _,field in ipairs(host:GetDescendants()) do
-                    if field:IsA("GuiObject") and field~=object then
-                        local fs=field.AbsoluteSize
-                        local gap=object.AbsolutePosition.X-field.AbsolutePosition.X-fs.X
-                        local dy=math.abs(field.AbsolutePosition.Y+fs.Y/2-object.AbsolutePosition.Y-size.Y/2)
-                        local outlined=field:FindFirstChildOfClass("UIStroke")~=nil or field.BorderSizePixel>0
-                        local hasText=field:IsA("TextLabel") or field:IsA("TextButton") or field:IsA("TextBox")
-                        if not hasText then
-                            for _,item in ipairs(field:GetChildren()) do
-                                if isText(item) then hasText=true;break end
-                            end
-                        end
-                        if outlined and hasText and fs.X>=45 and fs.X<=220 and fs.Y>=15 and fs.Y<=50
-                            and gap>=-4 and gap<=24 and dy<=10 then arrow=true;break end
-                    end
-                end
-                host=host.Parent
-            end
-            if not arrow then return end
-            paths={{{5,5},{12,12},{19,5}},{{5,12},{12,19},{19,12}}}
-        end
+        if not paths then return end
         local overlay=Instance.new("Frame")
         overlay.Name="VoidFeatureIcon";overlay.BackgroundTransparency=1
         overlay.Size=UDim2.fromScale(1,1);overlay.Active=false;overlay.ZIndex=object.ZIndex+1
@@ -2236,7 +2208,14 @@ local function InstallOnionBranding()
 
     local enroll, observe
     observe = function(object, root)
-        if tracked[object] then return end
+        if not roots[root] or tracked[object] then return end
+        if not (object:IsA("GuiObject") or object:IsA("UIStroke") or object:IsA("UIGradient")) then return end
+        if object.Name=="OnionIceGradient" or object.Name=="VoidFeatureIcon" or object:GetAttribute("VoidIconStroke") then return end
+        local ancestor=object
+        while ancestor and ancestor~=root do
+            if ancestor:GetAttribute("VoidThemeUI") then return end
+            ancestor=ancestor.Parent
+        end
         tracked[object] = true
         local function update()
             if not roots[root] and (branded(object.Name) or (isText(object) and branded(object.Text))) then
@@ -2244,8 +2223,8 @@ local function InstallOnionBranding()
             end
             if roots[root] then
                 edit(object)
-                if isText(object) and object.Parent then
-                    for _,sibling in ipairs(object.Parent:GetDescendants()) do restyleFeatureIcon(sibling) end
+                if isText(object) and iconPaths[object.Text] and object.Parent then
+                    for _,sibling in ipairs(object.Parent:GetChildren()) do restyleFeatureIcon(sibling) end
                 end
             end
         end
@@ -2259,9 +2238,10 @@ local function InstallOnionBranding()
         end
         if object:IsA("ImageLabel") or object:IsA("ImageButton") then
             connect(object:GetPropertyChangedSignal("Image"), update)
-            connect(object:GetPropertyChangedSignal("AbsoluteSize"), update)
-            connect(object:GetPropertyChangedSignal("AbsolutePosition"), update)
-            task.defer(function() if object.Parent then update() end end)
+            connect(object:GetPropertyChangedSignal("AbsoluteSize"), function()
+                if not object:FindFirstChild("VoidFeatureIcon") then update() end
+            end)
+            task.delay(0.15,function() if object.Parent and not object:FindFirstChild("VoidFeatureIcon") then update() end end)
         end
         -- Follow late native icon colors and hover/selection transitions.
         local colorProperties={}
@@ -2285,14 +2265,22 @@ local function InstallOnionBranding()
     enroll = function(root)
         if roots[root] then return end
         roots[root] = true
-        for _, object in ipairs(root:GetDescendants()) do edit(object) end
+        for _, object in ipairs(root:GetDescendants()) do observe(object,root) end
     end
     local function inspectRoot(root)
         if not root:IsA("ScreenGui") or watched[root] then return end
         watched[root] = true
-        connect(root.DescendantAdded, function(object) observe(object, root) end)
+        local function discover(object)
+            if roots[root] then observe(object,root)
+            elseif branded(object.Name) or (isText(object) and branded(object.Text)) then enroll(root) end
+        end
+        connect(root.DescendantAdded, discover)
         if OnionCreatingInterface or branded(root.Name) or (root.Name:lower():find("onion", 1, true) or root.Name:lower():find("void", 1, true)) then enroll(root) end
-        for _, object in ipairs(root:GetDescendants()) do observe(object, root) end
+        if not roots[root] then
+            for _,object in ipairs(root:GetDescendants()) do
+                if branded(object.Name) or (isText(object) and branded(object.Text)) then enroll(root);break end
+            end
+        end
     end
     local containers = {game:GetService("CoreGui"), game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")}
     if gethui then
