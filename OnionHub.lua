@@ -1835,25 +1835,22 @@ local appState = {
     panel = nil,
     tabButtons = {},
     tabContents = {},
-    PANEL_W = 560,
-    PANEL_H = 470,
+    PANEL_W = 940,
+    PANEL_H = 560,
     COL_DARK = Color3.fromRGB(7, 13, 27),
-    COL_WHITE = Color3.fromRGB(235, 245, 255),
-    COL_DIM = Color3.fromRGB(105, 195, 255),
+    COL_WHITE = Color3.fromRGB(232, 237, 246),
+    COL_DIM = Color3.fromRGB(147, 163, 188),
 }
 if isMobile then
-    appState.PANEL_W = 480
-    appState.PANEL_H = 390
+    appState.PANEL_W = 820
+    appState.PANEL_H = 500
 end
 
 do
-    local accentKeys = {}
-    accentKeys[1] = ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 145, 255))
-    accentKeys[2] = ColorSequenceKeypoint.new(0.2, Color3.fromRGB(115, 205, 255))
-    accentKeys[3] = ColorSequenceKeypoint.new(0.4, Color3.fromRGB(235, 248, 255))
-    accentKeys[4] = ColorSequenceKeypoint.new(0.6, Color3.fromRGB(90, 170, 255))
-    accentKeys[5] = ColorSequenceKeypoint.new(0.8, Color3.fromRGB(45, 230, 255))
-    accentKeys[6] = ColorSequenceKeypoint.new(1, Color3.fromRGB(105, 190, 255))
+    local accentKeys = {
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(83, 139, 245)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(110, 176, 255)),
+    }
     appState.ACCENT_KEYS = accentKeys
 end
 do
@@ -1996,11 +1993,11 @@ end
 local menuButton = Instance.new("TextButton")
 menuButton.Name = generateRandomGuiName()
 menuButton.Size = UDim2.new(0, isMobile and 82 or 88, 0, isMobile and 27 or 28)
-menuButton.Position = UDim2.new(0.5, -(isMobile and 41 or 44), 0, 12)
+menuButton.Position = UDim2.new(0.5, -(isMobile and 41 or 44), 1, -42)
 menuButton.BackgroundColor3 = Color3.fromRGB(13, 45, 90)
 menuButton.BackgroundTransparency = 0.38
 menuButton.BorderSizePixel = 0
-menuButton.Text = isMobile and "Menu" or "Menu [T]"
+menuButton.Text = isMobile and "ONION" or "ONION [T]"
 menuButton.TextColor3 = appState.COL_WHITE
 menuButton.TextSize = isMobile and 12 or 12
 menuButton.Font = Enum.Font.GothamBold
@@ -2018,27 +2015,27 @@ appState.panel = Instance.new("Frame")
 appState.panel.Name = generateRandomGuiName()
 appState.panel.Size = UDim2.new(0, appState.PANEL_W, 0, appState.PANEL_H)
 appState.panel.Position = UDim2.new(0.5, -appState.PANEL_W / 2, 0.5, -appState.PANEL_H / 2)
-appState.panel.BackgroundColor3 = Color3.fromRGB(6, 14, 31)
-appState.panel.BackgroundTransparency = 0.62
+appState.panel.BackgroundColor3 = Color3.fromRGB(12, 16, 25)
+appState.panel.BackgroundTransparency = 0
 appState.panel.BorderSizePixel = 0
 appState.panel.Visible = true
 appState.panel.ZIndex = 10
 appState.panel.Active = true
 appState.panel.Parent = mainGui
 createUICorner(appState.panel, 18)
-addGradientStroke(appState.panel, 2)
+addGradientStroke(appState.panel, 1).Transparency = 0.65
 do
     local uiGradient = Instance.new("UIGradient")
     local keys = {}
-    keys[1] = ColorSequenceKeypoint.new(0, Color3.fromRGB(6, 14, 31))
-    keys[2] = ColorSequenceKeypoint.new(0.55, Color3.fromRGB(8, 28, 59))
-    keys[3] = ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 12, 28))
+    keys[1] = ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 16, 25))
+    keys[2] = ColorSequenceKeypoint.new(0.55, Color3.fromRGB(18, 25, 39))
+    keys[3] = ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 16, 25))
     uiGradient.Color = ColorSequence.new(keys)
     uiGradient.Rotation = 135
     uiGradient.Parent = appState.panel
 end
 
-local headerHeight = isMobile and 42 or 48
+local headerHeight = 64
 local headerFrame = Instance.new("Frame")
 headerFrame.Size = UDim2.new(1, 0, 0, headerHeight)
 headerFrame.BackgroundColor3 = Color3.fromRGB(10, 27, 45)
@@ -2109,13 +2106,40 @@ do
     textLabel.Size = UDim2.new(1, -98, 1, 0)
     textLabel.Position = UDim2.new(0, isMobile and 54 or 54, 0, 0)
     textLabel.BackgroundTransparency = 1
-    textLabel.Text = "Onion Project — Blox Fruits"
+    textLabel.Text = "ONION PROJECT"
     textLabel.TextColor3 = appState.COL_WHITE
-    textLabel.TextSize = isMobile and 13 or 16
+    textLabel.TextSize = 18
     textLabel.Font = Enum.Font.GothamBlack
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.ZIndex = 14
     textLabel.Parent = headerFrame
+end
+
+do
+    local badge = Instance.new("TextLabel")
+    badge.Size = UDim2.new(0, 140, 0, 26)
+    badge.Position = UDim2.new(1, -194, 0.5, -13)
+    badge.BackgroundColor3 = Color3.fromRGB(27, 43, 68)
+    badge.BackgroundTransparency = 0.2
+    badge.BorderSizePixel = 0
+    badge.Text = "BLOX FRUITS"
+    badge.TextColor3 = Color3.fromRGB(140, 183, 250)
+    badge.Font = Enum.Font.GothamBold
+    badge.TextSize = 11
+    badge.ZIndex = 15
+    badge.Parent = headerFrame
+    createUICorner(badge, 7)
+    local hint = Instance.new("TextLabel")
+    hint.BackgroundTransparency = 1
+    hint.Size = UDim2.new(1, -36, 0, 22)
+    hint.Position = UDim2.new(0, 18, 1, -25)
+    hint.Text = "ONION PROJECT   /   " .. (isMobile and "Desliza las pestañas para explorar" or "T para mostrar u ocultar  ·  Arrastra el encabezado para mover")
+    hint.TextColor3 = Color3.fromRGB(105, 124, 153)
+    hint.TextSize = 10
+    hint.Font = Enum.Font.Gotham
+    hint.TextXAlignment = Enum.TextXAlignment.Left
+    hint.ZIndex = 14
+    hint.Parent = appState.panel
 end
 
 local RunService = game:GetService("RunService")
@@ -2142,7 +2166,7 @@ local function openWindow()
     appState.panel.BackgroundTransparency = 1
     playTween(appState.panel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, appState.PANEL_W, 0, appState.PANEL_H),
-        BackgroundTransparency = 0.62,
+        BackgroundTransparency = 0,
     })
 end
 
@@ -2205,17 +2229,17 @@ end
 -- CUERPO: SIDEBAR + CONTENIDO
 --------------------------------------------------------------------------------
 local bodyFrame = Instance.new("Frame")
-bodyFrame.Size = UDim2.new(1, -16, 1, -(headerHeight + 12))
-bodyFrame.Position = UDim2.new(0, 8, 0, headerHeight + 6)
+bodyFrame.Size = UDim2.new(1, -32, 1, -(headerHeight + 34))
+bodyFrame.Position = UDim2.new(0, 16, 0, headerHeight)
 bodyFrame.BackgroundTransparency = 1
 bodyFrame.ZIndex = 12
 bodyFrame.Parent = appState.panel
 
 local sidebarWidth = isMobile and 96 or 125
 local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, sidebarWidth, 1, 0)
-sidebar.BackgroundColor3 = Color3.fromRGB(7, 11, 44)
-sidebar.BackgroundTransparency = 0.62
+sidebar.Size = UDim2.new(1, 0, 0, 48)
+sidebar.BackgroundColor3 = Color3.fromRGB(17, 23, 35)
+sidebar.BackgroundTransparency = 0.25
 sidebar.BorderSizePixel = 0
 sidebar.ZIndex = 11
 sidebar.Parent = bodyFrame
@@ -2223,19 +2247,22 @@ sidebar.ClipsDescendants = true
 createUICorner(sidebar, 11)
 
 local sidebarScroll = Instance.new("ScrollingFrame")
-sidebarScroll.Size = UDim2.new(1, -6, 1, -94)
-sidebarScroll.Position = UDim2.new(0, 3, 0, 4)
+sidebarScroll.Size = UDim2.new(1, -12, 1, -6)
+sidebarScroll.Position = UDim2.new(0, 6, 0, 2)
 sidebarScroll.BackgroundTransparency = 1
 sidebarScroll.BorderSizePixel = 0
 sidebarScroll.ScrollBarThickness = 0
 sidebarScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-sidebarScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+sidebarScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+sidebarScroll.ScrollingDirection = Enum.ScrollingDirection.X
+sidebarScroll.ScrollBarThickness = 2
 sidebarScroll.ZIndex = 12
 sidebarScroll.Parent = sidebar
 do
     local uiListLayout = Instance.new("UIListLayout")
     uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     uiListLayout.Padding = UDim.new(0, 5)
+    uiListLayout.FillDirection = Enum.FillDirection.Horizontal
     uiListLayout.Parent = sidebarScroll
 end
 do
@@ -2246,100 +2273,13 @@ do
     instance.Parent = sidebarScroll
 end
 
--- Línea divisoria vertical con gradient
-do
-    local divider = Instance.new("Frame")
-    divider.Size = UDim2.new(0, 2, 1, -6)
-    divider.Position = UDim2.new(0, sidebarWidth + 5, 0, 3)
-    divider.BackgroundColor3 = Color3.fromRGB(80, 155, 255)
-    divider.BackgroundTransparency = 0.25
-    divider.BorderSizePixel = 0
-    divider.ZIndex = 12
-    divider.Parent = bodyFrame
-    local uiGradient = Instance.new("UIGradient")
-    uiGradient.Color = ColorSequence.new(appState.ACCENT_KEYS)
-    uiGradient.Parent = divider
-    table.insert(appState.allGradients, uiGradient)
-end
-
 local contentHolder = Instance.new("Frame")
-contentHolder.Size = UDim2.new(1, -sidebarWidth - 15, 1, 0)
-contentHolder.Position = UDim2.new(0, sidebarWidth + 13, 0, 0)
+contentHolder.Size = UDim2.new(1, 0, 1, -62)
+contentHolder.Position = UDim2.new(0, 0, 0, 62)
 contentHolder.BackgroundTransparency = 1
 contentHolder.ZIndex = 11
 contentHolder.Parent = bodyFrame
 
--- Footer del sidebar (logo + discord)
-do
-    local footer = Instance.new("Frame")
-    footer.Name = "OnionProjectSidebarFooter"
-    footer.Size = UDim2.new(1, -8, 0, isMobile and 78 or 86)
-    footer.Position = UDim2.new(0, 4, 1, isMobile and -82 or -90)
-    footer.BackgroundColor3 = Color3.fromRGB(8, 24, 45)
-    footer.BackgroundTransparency = 0.58
-    footer.BorderSizePixel = 0
-    footer.ClipsDescendants = true
-    footer.ZIndex = 13
-    footer.Parent = sidebar
-    createUICorner(footer, 9)
-    addGradientStroke(footer, 1).Transparency = 0.5
-    do
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Size = UDim2.new(1, -8, 0, 14)
-        textLabel.Position = UDim2.new(0, 4, 0, 4)
-        textLabel.BackgroundTransparency = 1
-        textLabel.Text = "Onion Project"
-        textLabel.TextColor3 = Color3.fromRGB(150, 205, 255)
-        textLabel.TextSize = isMobile and 8 or 9
-        textLabel.Font = Enum.Font.GothamBold
-        textLabel.TextXAlignment = Enum.TextXAlignment.Left
-        textLabel.ZIndex = 15
-        textLabel.Parent = footer
-    end
-    if logoAsset then
-        local imageLabel = Instance.new("ImageLabel")
-        imageLabel.Size = UDim2.new(0, isMobile and 38 or 44, 0, isMobile and 38 or 44)
-        imageLabel.AnchorPoint = Vector2.new(0.5, 0)
-        imageLabel.Position = UDim2.new(0.5, 0, 0, isMobile and 17 or 18)
-        imageLabel.BackgroundTransparency = 1
-        imageLabel.Image = logoAsset
-        imageLabel.ScaleType = Enum.ScaleType.Fit
-        imageLabel.ZIndex = 15
-        imageLabel.Parent = footer
-    else
-        local logoFallback = Instance.new("TextLabel")
-        logoFallback.Size = UDim2.new(0, isMobile and 38 or 44, 0, isMobile and 38 or 44)
-        logoFallback.AnchorPoint = Vector2.new(0.5, 0)
-        logoFallback.Position = UDim2.new(0.5, 0, 0, isMobile and 17 or 18)
-        logoFallback.BackgroundColor3 = Color3.fromRGB(12, 45, 92)
-        logoFallback.BackgroundTransparency = 0.08
-        logoFallback.Text = "ON"
-        logoFallback.TextColor3 = Color3.fromRGB(225, 242, 255)
-        logoFallback.TextSize = isMobile and 13 or 14
-        logoFallback.Font = Enum.Font.GothamBlack
-        logoFallback.BorderSizePixel = 0
-        logoFallback.ZIndex = 15
-        logoFallback.Parent = footer
-        createUICorner(logoFallback, 9)
-        addGradientStroke(logoFallback, 1)
-    end
-    do
-        local instance2 = Instance.new("TextLabel")
-        instance2.Size = UDim2.new(1, -8, 0, 12)
-        instance2.Position = UDim2.new(0, 4, 1, -14)
-        instance2.BackgroundTransparency = 1
-        instance2.Text = "Blox Fruits"
-        instance2.TextColor3 = appState.COL_DIM
-        instance2.TextSize = isMobile and 6 or 8
-        instance2.Font = Enum.Font.GothamBold
-        instance2.TextXAlignment = Enum.TextXAlignment.Center
-        instance2.TextTruncate = Enum.TextTruncate.AtEnd
-        instance2.ZIndex = 15
-        instance2.Parent = footer
-    end
-end
-
---------------------------------------------------------------------------------
 -- SISTEMA DE TABS REUTILIZABLE
 --  * Un único indicador (barra con gradient) que se desliza al tab seleccionado.
 --  * TabSystem.addTab(nombre) crea botón + página; TabSystem.select(nombre) cambia.
@@ -2377,13 +2317,12 @@ end
 local function indicatorGoal(tab)
     local b = tab.button
     local rel = b.AbsolutePosition - sidebar.AbsolutePosition
-    local h = b.AbsoluteSize.Y * 0.68
-    return UDim2.fromOffset(rel.X, rel.Y + b.AbsoluteSize.Y * 0.16), UDim2.fromOffset(3, h)
+    return UDim2.fromOffset(rel.X + 10, rel.Y + b.AbsoluteSize.Y - 2), UDim2.fromOffset(b.AbsoluteSize.X - 20, 2)
 end
 
 local function setTabVisual(tab, selected, instant)
-    local bgT = selected and 0.28 or 0.48
-    local strokeT = selected and 0.25 or 0.8
+    local bgT = selected and 0.05 or 1
+    local strokeT = selected and 0.6 or 1
     local color = selected and appState.COL_WHITE or appState.COL_DIM
     tab.label.Font = selected and Enum.Font.GothamBlack or Enum.Font.GothamBold
     if instant then
@@ -2440,7 +2379,7 @@ end
 function TabSystem.addTab(name)
     local index = #TabSystem.order + 1
     local tabButton = Instance.new("TextButton")
-    tabButton.Size = UDim2.new(1, -2, 0, isMobile and 31 or 32)
+    tabButton.Size = UDim2.new(0, math.max(82, #name * 7 + 28), 0, 36)
     tabButton.BackgroundColor3 = Color3.fromRGB(10, 31, 61)
     tabButton.BackgroundTransparency = 0.48
     tabButton.BorderSizePixel = 0
@@ -2453,13 +2392,13 @@ function TabSystem.addTab(name)
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, -12, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Position = UDim2.new(0, 6, 0, 0)
     label.BackgroundTransparency = 1
     label.Text = name
     label.TextColor3 = appState.COL_DIM
     label.TextSize = isMobile and 10 or 12
     label.Font = Enum.Font.GothamBold
-    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextXAlignment = Enum.TextXAlignment.Center
     label.ZIndex = 14
     label.Parent = tabButton
 
@@ -2481,7 +2420,9 @@ function TabSystem.addTab(name)
     do
         local uiListLayout = Instance.new("UIListLayout")
         uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        uiListLayout.Padding = UDim.new(0, 8)
+        uiListLayout.Padding = UDim.new(0, 14)
+        uiListLayout.FillDirection = Enum.FillDirection.Horizontal
+        uiListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
         uiListLayout.Parent = content
     end
     do
@@ -2521,7 +2462,7 @@ local tooltipFrame = Instance.new("Frame")
 tooltipFrame.Name = "OnionProjectTooltip"
 tooltipFrame.AutomaticSize = Enum.AutomaticSize.XY
 tooltipFrame.Size = UDim2.new(0, 0, 0, 0)
-tooltipFrame.BackgroundColor3 = Color3.fromRGB(6, 14, 31)
+tooltipFrame.BackgroundColor3 = Color3.fromRGB(12, 16, 25)
 tooltipFrame.BackgroundTransparency = 1
 tooltipFrame.BorderSizePixel = 0
 tooltipFrame.Visible = false
@@ -2605,7 +2546,7 @@ local function showToast(title, message)
     local toast = Instance.new("Frame")
     toast.Size = UDim2.new(1, 0, 1, 0)
     toast.Position = UDim2.new(1.3, 0, 0, 0)
-    toast.BackgroundColor3 = Color3.fromRGB(7, 24, 50)
+    toast.BackgroundColor3 = Color3.fromRGB(21, 29, 43)
     toast.BackgroundTransparency = 0.15
     toast.BorderSizePixel = 0
     toast.ZIndex = 91
@@ -2618,7 +2559,7 @@ local function showToast(title, message)
     tl.Position = UDim2.new(0, 10, 0, 8)
     tl.BackgroundTransparency = 1
     tl.Text = string.upper(title)
-    tl.TextColor3 = Color3.fromRGB(130, 200, 255)
+    tl.TextColor3 = Color3.fromRGB(181, 205, 243)
     tl.TextSize = 11
     tl.Font = Enum.Font.GothamBlack
     tl.TextXAlignment = Enum.TextXAlignment.Left
@@ -2664,7 +2605,7 @@ local ACCENT_TWEEN = TweenInfo.new(0.15, Enum.EasingStyle.Quad)
 local function newRow(parent, height, bgColor, bgTransparency, corner, order)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 0, height)
-    frame.BackgroundColor3 = bgColor or Color3.fromRGB(8, 27, 55)
+    frame.BackgroundColor3 = bgColor or Color3.fromRGB(28, 38, 54)
     frame.BackgroundTransparency = bgTransparency or 0.42
     frame.BorderSizePixel = 0
     frame.ZIndex = 12
@@ -2751,8 +2692,8 @@ local function createPanelSection(parent, sectionTitle)
     instance.Name = generateRandomGuiName()
     instance.Size = UDim2.new(1, 0, 0, 0)
     instance.AutomaticSize = Enum.AutomaticSize.Y
-    instance.BackgroundColor3 = Color3.fromRGB(7, 24, 50)
-    instance.BackgroundTransparency = 0.48
+    instance.BackgroundColor3 = Color3.fromRGB(21, 29, 43)
+    instance.BackgroundTransparency = 0.08
     instance.BorderSizePixel = 0
     instance.ZIndex = 12
     instance.LayoutOrder = #parent:GetChildren()
@@ -2762,7 +2703,7 @@ local function createPanelSection(parent, sectionTitle)
     local uiStroke = Instance.new("UIStroke")
     uiStroke.Color = Color3.fromRGB(65, 145, 255)
     uiStroke.Thickness = 1
-    uiStroke.Transparency = 0.45
+    uiStroke.Transparency = 0.78
     uiStroke.Parent = instance
 
     local uiListLayout = Instance.new("UIListLayout")
@@ -2781,7 +2722,7 @@ local function createPanelSection(parent, sectionTitle)
     textLabel.Size = UDim2.new(1, 0, 0, isMobile and 24 or 21)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = string.upper(sectionTitle)
-    textLabel.TextColor3 = Color3.fromRGB(130, 200, 255)
+    textLabel.TextColor3 = Color3.fromRGB(181, 205, 243)
     textLabel.TextSize = isMobile and 13 or 11
     textLabel.Font = Enum.Font.GothamBlack
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -2808,7 +2749,7 @@ local function createPanelSection(parent, sectionTitle)
 
     local uiListLayout2 = Instance.new("UIListLayout")
     uiListLayout2.SortOrder = Enum.SortOrder.LayoutOrder
-    uiListLayout2.Padding = UDim.new(0, isMobile and 6 or 5)
+    uiListLayout2.Padding = UDim.new(0, 7)
     uiListLayout2.Parent = frame5
 
     return frame5, instance
@@ -2844,8 +2785,8 @@ end
 
 -- Toggle grande (createToggleRow del original)
 local function createToggleRow(parent, text, enabled, onChanged, locked)
-    local rowHeight = isMobile and 42 or 36
-    local frame3 = newRow(parent, rowHeight, Color3.fromRGB(8, 27, 55), 0.42, 8)
+    local rowHeight = 42
+    local frame3 = newRow(parent, rowHeight, Color3.fromRGB(28, 38, 54), 0.42, 8)
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(1, -60, 1, 0)
@@ -2853,9 +2794,10 @@ local function createToggleRow(parent, text, enabled, onChanged, locked)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = text
     textLabel.TextColor3 = appState.COL_WHITE
-    textLabel.TextSize = isMobile and 15 or 13
+    textLabel.TextSize = 13
     textLabel.Font = Enum.Font.GothamBold
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.TextWrapped = true
     textLabel.ZIndex = 13
     textLabel.Parent = frame3
 
@@ -2909,7 +2851,7 @@ end
 -- Toggle compacto (createToggle del original)
 local function createToggle(parent, text, enabled)
     local rowHeight = isMobile and 28 or 30
-    local frame3 = newRow(parent, rowHeight, Color3.fromRGB(8, 27, 55), 0.42, 6)
+    local frame3 = newRow(parent, rowHeight, Color3.fromRGB(28, 38, 54), 0.42, 6)
     frame3.ZIndex = 11
 
     local label = Instance.new("TextLabel")
@@ -2976,7 +2918,7 @@ local function createButton(parent, text, style, onClick)
     createUICorner(frame3, 8)
 
     local restT, hoverT, pressT
-    local restColor = Color3.fromRGB(8, 27, 55)
+    local restColor = Color3.fromRGB(28, 38, 54)
     if style == "featured" then
         restColor = Color3.fromRGB(12, 48, 90)
         restT, hoverT, pressT = 0.28, 0.1, 0
@@ -3039,7 +2981,7 @@ local function createSlider(parent, text, minV, maxV, defaultV, step, suffix, on
     local pageScroll = parent:FindFirstAncestorWhichIsA("ScrollingFrame")
     step = tonumber(step) or 1
     if step <= 0 then step = 1 end
-    local row = newRow(parent, isMobile and 56 or 52, Color3.fromRGB(8, 27, 55), 0.42, 8)
+    local row = newRow(parent, isMobile and 56 or 52, Color3.fromRGB(28, 38, 54), 0.42, 8)
     newLabel(row, text, 10, 6, UDim2.new(0.6, 0, 0, 18), 18, isMobile and 14 or 12)
     local valueLabel = newLabel(row, "", 0, 6, UDim2.new(0.4, -10, 0, 18), 18, 12, Color3.fromRGB(80, 205, 255), Enum.Font.GothamBold, Enum.TextXAlignment.Right)
     valueLabel.Position = UDim2.new(0.6, 0, 0, 6)
@@ -3129,7 +3071,7 @@ end
 
 -- Barra de progreso de solo lectura
 local function createProgressBar(parent, text)
-    local row = newRow(parent, isMobile and 50 or 46, Color3.fromRGB(8, 27, 55), 0.42, 8)
+    local row = newRow(parent, isMobile and 50 or 46, Color3.fromRGB(28, 38, 54), 0.42, 8)
     local title = newLabel(row, text, 10, 6, UDim2.new(0.6, 0, 0, 18), 18, isMobile and 14 or 12)
     local pct = newLabel(row, "0%", 0, 6, UDim2.new(0.4, -10, 0, 18), 18, 12, Color3.fromRGB(80, 205, 255), Enum.Font.GothamBold, Enum.TextXAlignment.Right)
     pct.Position = UDim2.new(0.6, 0, 0, 6)
@@ -3184,7 +3126,7 @@ local function createDropdown(parent, title, options, defaultIndex)
     local headerH = isMobile and 36 or 32
     local optH = isMobile and 32 or 28
     local listH = #options * optH + 6
-    local container = newRow(parent, headerH, Color3.fromRGB(15, 31, 57), 0.2, 6)
+    local container = newRow(parent, headerH, Color3.fromRGB(28, 38, 54), 0.2, 6)
     container.ClipsDescendants = true
 
     local header = Instance.new("TextButton")
@@ -3384,7 +3326,7 @@ end
 
 -- Checkbox
 local function createCheckbox(parent, text, checked)
-    local row = newRow(parent, isMobile and 34 or 30, Color3.fromRGB(8, 27, 55), 0.42, 8)
+    local row = newRow(parent, isMobile and 34 or 30, Color3.fromRGB(28, 38, 54), 0.42, 8)
     local box = Instance.new("Frame")
     box.Size = UDim2.new(0, 18, 0, 18)
     box.Position = UDim2.new(0, 10, 0.5, -9)
@@ -3431,7 +3373,7 @@ end
 
 -- Keybind (UI del original: botón "[R]" -> "..." -> tecla). Sin acción asociada.
 local function createKeybind(parent, text, defaultKey)
-    local frame2 = newRow(parent, 34, Color3.fromRGB(15, 31, 57), 0.45, 7)
+    local frame2 = newRow(parent, 34, Color3.fromRGB(28, 38, 54), 0.45, 7)
     addGradientStroke(frame2, 1)
     newLabel(frame2, text, 10, 0, UDim2.new(1, -90, 1, 0), nil, isMobile and 11 or 12)
     local keyButton = Instance.new("TextButton")
@@ -3478,7 +3420,7 @@ end
 
 -- TextBox con placeholder
 local function createTextInput(parent, labelText, placeholder, startText)
-    local row = newRow(parent, isMobile and 36 or 32, Color3.fromRGB(15, 31, 57), 0.2, 6)
+    local row = newRow(parent, isMobile and 36 or 32, Color3.fromRGB(28, 38, 54), 0.2, 6)
     newLabel(row, labelText, 8, 0, UDim2.new(1, -150, 1, 0), nil, isMobile and 13 or 11)
     local textBox = Instance.new("TextBox")
     textBox.Size = UDim2.new(0, 130, 0, isMobile and 24 or 22)
@@ -3524,7 +3466,7 @@ local function createSearch(parent, items)
     ringF.Parent = box
     createUICorner(ringF, 6)
     local ringStroke = Instance.new("UIStroke")
-    ringStroke.Color = Color3.fromRGB(105, 195, 255)
+    ringStroke.Color = Color3.fromRGB(147, 163, 188)
     ringStroke.Thickness = 1.5
     ringStroke.Parent = ringF
     local handle = Instance.new("Frame")
@@ -3532,7 +3474,7 @@ local function createSearch(parent, items)
     handle.AnchorPoint = Vector2.new(0.5, 0.5)
     handle.Position = UDim2.new(0, 22, 0.5, 5)
     handle.Rotation = 45
-    handle.BackgroundColor3 = Color3.fromRGB(105, 195, 255)
+    handle.BackgroundColor3 = Color3.fromRGB(147, 163, 188)
     handle.BorderSizePixel = 0
     handle.ZIndex = 14
     handle.Parent = box
@@ -3622,7 +3564,7 @@ end
 local function createCollapsible(parent, title, bodyText)
     local headerH = 34
     local bodyH = 46
-    local container = newRow(parent, headerH, Color3.fromRGB(15, 31, 57), 0.45, 7)
+    local container = newRow(parent, headerH, Color3.fromRGB(28, 38, 54), 0.45, 7)
     container.ClipsDescendants = true
     addGradientStroke(container, 1)
     newLabel(container, title, 10, 0, UDim2.new(1, -50, 0, headerH), headerH, 12, appState.COL_WHITE, Enum.Font.GothamBlack)
@@ -3767,7 +3709,7 @@ wrap = function(parent)
                 selected[options[value] or value] = true
             end
         end
-        local row = newRow(parent, 36, Color3.fromRGB(15, 31, 57), 0.2, 6)
+        local row = newRow(parent, 36, Color3.fromRGB(28, 38, 54), 0.2, 6)
         row.ClipsDescendants = true
         local header = Instance.new("TextButton")
         header.Size = UDim2.new(1, 0, 0, 36)
@@ -3880,8 +3822,28 @@ end
 local window = {}
 function window:AddTab(name)
     local parent = TabSystem.addTab(name)
+    local columns = {}
+    for i = 1, 2 do
+        local column = Instance.new("Frame")
+        column.Name = "Column" .. i
+        column.Size = UDim2.new(0.5, -7, 0, 0)
+        column.AutomaticSize = Enum.AutomaticSize.Y
+        column.BackgroundTransparency = 1
+        column.LayoutOrder = i
+        column.Parent = parent
+        local layout = Instance.new("UIListLayout")
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Padding = UDim.new(0, 14)
+        layout.Parent = column
+        columns[i] = column
+    end
+    local tab, count = {}, 0
+    function tab:addSection()
+        count = count + 1
+        return wrap(columns[(count - 1) % 2 + 1])
+    end
     if #TabSystem.order == 1 then task.defer(function() TabSystem.select(name, true) end) end
-    return wrap(parent)
+    return tab
 end
 function window:Destroy() mainGui:Destroy() end
 function window:Toggle() toggleWindow() end
@@ -3899,16 +3861,6 @@ end
 fit()
 if workspace.CurrentCamera then workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit) end
 openWindow()
-task.spawn(function()
-    local rotation = 0
-    while mainGui.Parent do
-        rotation = (rotation + 8) % 360
-        for _, gradient in ipairs(appState.allGradients) do
-            if gradient.Parent then gradient.Rotation = rotation end
-        end
-        task.wait(0.2)
-    end
-end)
 Library._toast = showToast
 return window
 end
