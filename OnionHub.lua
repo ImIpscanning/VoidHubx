@@ -1,20 +1,22 @@
--- OnionHub main.lua — integrated distribution
+-- VoidHub main.lua — original layout, selectable colors and local sky tint
 -- Contains the complete supplied Quantum main, Claude's Onion splash,
 -- Data and Weebo, plus original upstream UI/Visuals modules.
 -- UI/Visuals remain obfuscated upstream code; they are not reconstructed sources.
 -- Compilation is checked separately from Roblox runtime compatibility.
--- Configure before executing: getgenv().OnionHubConfig = {
+-- Configure before executing: getgenv().VoidHubConfig = {
 --     EnableEventReports = false, -- opt in to reports to api.quantumonyx.cc
 --     ReloadURL = "",            -- your hosted Onion main.lua URL
 -- }
 assert(type(loadstring) == "function", "Onion requires a Luau client with loadstring")
 local OnionEnvironment = (getgenv and getgenv()) or _G
 if OnionEnvironment.OnionHubBooting or OnionEnvironment.OnionHubActive then
-    warn("[OnionHub] Already starting or active")
+    warn("[VoidHub] Already starting or active")
     return
 end
 OnionEnvironment.OnionHubBooting = true
-local OnionConfig = OnionEnvironment.OnionHubConfig or {}
+local ONION_LOGO_IMAGE = "rbxassetid://123282801426895" -- Paste your image: rbxassetid://1234567890
+local OnionConfig = OnionEnvironment.VoidHubConfig or OnionEnvironment.OnionHubConfig or {}
+OnionConfig.LogoImage = OnionConfig.LogoImage or ONION_LOGO_IMAGE
 local OnionBundle = {}
 
 OnionBundle["Util/BloxFruitModule/Preload/Data.lua"] = [=[
@@ -1829,109 +1831,93 @@ local OnionCoreSource = [=[
 local OnionBundle, OnionConfig = ...
 -- Branding adapter for the bundled UI. Only roots identified as this hub are edited.
 local OnionCreatingInterface = false
+local VoidThemeController = {}
 local function InstallOnionBranding()
     local roots, watched, tracked = {}, {}, {}
     local connections = {}
     local styling = setmetatable({}, {__mode = "k"})
-    local palette = {
-        Background = Color3.fromRGB(6, 14, 31),
-        Surface = Color3.fromRGB(10, 27, 45),
-        Border = Color3.fromRGB(65, 145, 255),
-        Accent = Color3.fromRGB(80, 185, 255),
-        Text = Color3.fromRGB(235, 245, 255),
-        Muted = Color3.fromRGB(145, 195, 230),
+    local applied = setmetatable({}, {__mode = "k"})
+    local originals = setmetatable({}, {__mode = "k"})
+    local presets = {
+        ["Void Black"] = {Color3.fromRGB(175,175,185), Color3.fromRGB(245,245,250), Color3.fromRGB(120,120,135)},
+        ["Ice Blue"] = {Color3.fromRGB(70,145,255), Color3.fromRGB(235,248,255), Color3.fromRGB(45,230,255)},
+        ["Purple"] = {Color3.fromRGB(145,85,255), Color3.fromRGB(235,215,255), Color3.fromRGB(195,130,255)},
+        ["Rose"] = {Color3.fromRGB(235,90,155), Color3.fromRGB(255,225,240), Color3.fromRGB(255,145,195)},
+        ["Emerald"] = {Color3.fromRGB(45,200,145), Color3.fromRGB(220,255,240), Color3.fromRGB(100,245,200)},
     }
+    local palette = {Background = Color3.fromRGB(8,8,11), Surface = Color3.fromRGB(18,18,23),
+        Border = Color3.fromRGB(65,65,75), Accent = Color3.fromRGB(220,220,230),
+        Text = Color3.fromRGB(240,240,245), Muted = Color3.fromRGB(160,160,175)}
+    local currentTheme = "Void Black"
+    local function makeSequence(colors)
+        return ColorSequence.new({ColorSequenceKeypoint.new(0,colors[1]),
+            ColorSequenceKeypoint.new(0.5,colors[2]),ColorSequenceKeypoint.new(1,colors[3])})
+    end
+    local iceSequence = makeSequence(presets[currentTheme])
     local function accent(color)
-        for _, themeColor in pairs(palette) do
-            if color == themeColor then return color end
-        end
-        local h, s, v = color:ToHSV()
-        if math.abs(h - 0.585) < 0.0001 then return color end
-        if h >= 0.20 and h <= 0.87 and s > 0.25 then
-            return Color3.fromHSV(0.585, math.clamp(s, 0.35, 0.78), math.clamp(v, 0.22, 1))
-        end
+        local _, saturation, value = color:ToHSV()
+        if saturation > 0.22 and value > 0.15 then return palette.Accent end
         return color
     end
     local function set(object, property, value)
         if object[property] ~= value then object[property] = value end
     end
     local function style(object)
-        if styling[object] then return end
+        if styling[object] or applied[object] or currentTheme == "Custom / Config" then return end
         styling[object] = true
         local ok, reason = pcall(function()
-            if object:IsA("GuiObject") then
-                local color = object.BackgroundColor3
-                local _, saturation, value = color:ToHSV()
-                if saturation < 0.18 and value < 0.19 then
-                    set(object, "BackgroundColor3", value < 0.055 and palette.Background or palette.Surface)
-                else
-                    set(object, "BackgroundColor3", accent(color))
-                end
+            local snapshot = originals[object]
+            if not snapshot then
+                snapshot = {}
+                if object:IsA("GuiObject") then snapshot.BackgroundColor3 = object.BackgroundColor3 end
+                if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then snapshot.TextColor3 = object.TextColor3 end
+                if object:IsA("ImageLabel") or object:IsA("ImageButton") then snapshot.ImageColor3 = object.ImageColor3 end
+                if object:IsA("UIStroke") or object:IsA("UIGradient") then snapshot.Color = object.Color end
+                originals[object] = snapshot
             end
-            if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
-                local color = object.TextColor3
-                local _, saturation, value = color:ToHSV()
-                if saturation < 0.12 and value >= 0.4 then
-                    set(object, "TextColor3", value >= 0.78 and palette.Text or palette.Muted)
-                else
-                    set(object, "TextColor3", accent(color))
+            if snapshot.BackgroundColor3 then
+                local _, _, brightness = snapshot.BackgroundColor3:ToHSV()
+                set(object, "BackgroundColor3", brightness < 0.24 and (brightness < 0.08 and palette.Background or palette.Surface) or accent(snapshot.BackgroundColor3))
+            end
+            if snapshot.TextColor3 then
+                local _, saturation, value = snapshot.TextColor3:ToHSV()
+                set(object, "TextColor3", saturation < 0.15 and (value >= 0.75 and palette.Text or palette.Muted) or accent(snapshot.TextColor3))
+            end
+            if snapshot.ImageColor3 and object.Name ~= "OnionBrandMark" then set(object,"ImageColor3",accent(snapshot.ImageColor3)) end
+            if object:IsA("UIStroke") then
+                set(object,"Color",Color3.new(1,1,1))
+                local gradient = object:FindFirstChildOfClass("UIGradient")
+                if not gradient then
+                    gradient = Instance.new("UIGradient")
+                    gradient.Name = "OnionIceGradient"
+                    gradient.Color = iceSequence
+                    gradient.Parent = object
                 end
-                if object.Font == Enum.Font.FredokaOne or object.Font == Enum.Font.Cartoon then
-                    set(object, "Font", Enum.Font.GothamMedium)
-                end
-            elseif object:IsA("ImageLabel") or object:IsA("ImageButton") then
-                set(object, "ImageColor3", accent(object.ImageColor3))
-            elseif object:IsA("UIStroke") then
-                set(object, "Color", accent(object.Color))
             elseif object:IsA("UIGradient") then
-                local points, changed = {}, false
-                for _, point in ipairs(object.Color.Keypoints) do
-                    local color = accent(point.Value)
-                    if color ~= point.Value then changed = true end
-                    table.insert(points, ColorSequenceKeypoint.new(point.Time, color))
+                local colorful = object.Name == "OnionIceGradient"
+                for _, point in ipairs(snapshot.Color.Keypoints) do
+                    local _, saturation = point.Value:ToHSV()
+                    if saturation > 0.22 then colorful = true end
                 end
-                if changed then object.Color = ColorSequence.new(points) end
+                if colorful then object.Color = iceSequence end
             end
-            if object:IsA("ScrollingFrame") then
-                set(object, "ScrollBarImageColor3", palette.Accent)
-                set(object, "ScrollBarThickness", 4)
-            end
-            if object:IsA("TextBox") then
-                set(object, "PlaceholderColor3", palette.Muted)
-            end
-            if object:IsA("Frame") and object.BackgroundTransparency < 0.2 then
-                local size = object.AbsoluteSize
-                if size.X >= 180 and size.Y >= 100 then
-                    if not object:FindFirstChildOfClass("UICorner") then
-                        local corner = Instance.new("UICorner")
-                        corner.Name = "OnionPanelCorner"
-                        corner.CornerRadius = UDim.new(0, 12)
-                        corner.Parent = object
-                    end
-                    if not object:FindFirstChildOfClass("UIStroke") then
-                        local stroke = Instance.new("UIStroke")
-                        stroke.Name = "OnionPanelBorder"
-                        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-                        stroke.Color = palette.Border
-                        stroke.Transparency = 0.45
-                        stroke.Thickness = 1
-                        stroke.Parent = object
-                    end
-                end
-            end
+            if object:IsA("ScrollingFrame") then object.ScrollBarImageColor3 = palette.Accent end
+            if object:IsA("TextBox") then object.PlaceholderColor3 = palette.Muted end
         end)
         styling[object] = nil
-        if not ok then warn("[Onion UI] " .. tostring(reason)) end
+        applied[object] = ok
+        if not ok then warn("[VoidHub UI] " .. tostring(reason)) end
     end
     local function branded(text)
         local value = string.lower(tostring(text or ""))
         return value:find("quantum", 1, true) or value:find("onyx", 1, true)
     end
     local function rename(text)
-        return (text:gsub("[Qq][Uu][Aa][Nn][Tt][Uu][Mm]%s*[Oo][Nn][Yy][Xx]", "Onion")
-            :gsub("[Qq][Uu][Aa][Nn][Tt][Uu][Mm]", "Onion")
-            :gsub("[Oo][Nn][Yy][Xx]", "Onion")
-            :gsub("OnionHub", "Onion"))
+        return (text:gsub("[Qq][Uu][Aa][Nn][Tt][Uu][Mm]%s*[Oo][Nn][Yy][Xx]", "VoidHub")
+            :gsub("[Qq][Uu][Aa][Nn][Tt][Uu][Mm]", "VoidHub")
+            :gsub("[Oo][Nn][Yy][Xx]", "VoidHub")
+            :gsub("Onion Project", "VoidHub"):gsub("OnionHub", "VoidHub"):gsub("Onion", "VoidHub")
+            :gsub("VoidHub Project", "VoidHub"))
     end
     local function connect(signal, callback)
         local connection = signal:Connect(callback)
@@ -1952,22 +1938,46 @@ local function InstallOnionBranding()
         if not (name:find("logo", 1, true) or branded(name) or floating) then return end
         if object:FindFirstChild("OnionBrandMark") then return end
         object.ImageTransparency = 1
-        local label = Instance.new("TextLabel")
+        local imageId = tostring(OnionConfig.LogoImage or "")
+        if imageId:match("^%d+$") then imageId = "rbxassetid://" .. imageId end
+        local hasImage = imageId ~= ""
+        local label = Instance.new(hasImage and "ImageLabel" or "TextLabel")
         label.Name = "OnionBrandMark"
         label.Size = UDim2.fromScale(1, 1)
-        label.BackgroundColor3 = Color3.fromRGB(8, 24, 45)
+        label.BackgroundColor3 = palette.Background
         label.BorderSizePixel = 0
-        label.Text = "O"
-        label.Font = Enum.Font.GothamBold
-        label.TextColor3 = palette.Accent
-        label.TextScaled = true
         label.Active = false
         label.ZIndex = object.ZIndex + 1
+        if hasImage then
+            label.Image = imageId
+            label.ImageColor3 = Color3.new(1, 1, 1)
+            label.ScaleType = Enum.ScaleType.Fit
+            label.BackgroundTransparency = 1
+        else
+            label.Text = "V"
+            label.Font = Enum.Font.GothamBold
+            label.TextColor3 = Color3.new(1, 1, 1)
+            label.TextScaled = true
+            local padding = Instance.new("UIPadding")
+            padding.PaddingTop = UDim.new(0.18, 0)
+            padding.PaddingBottom = UDim.new(0.18, 0)
+            padding.Parent = label
+            local gradient = Instance.new("UIGradient")
+            gradient.Name = "OnionIceGradient"
+            gradient.Color = iceSequence
+            gradient.Parent = label
+        end
+        local border = Instance.new("UIStroke")
+        border.Thickness = 1.5
+        border.Transparency = 0.2
+        border.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        border.Color = Color3.new(1, 1, 1)
+        local rim = Instance.new("UIGradient")
+        rim.Name = "OnionIceGradient"
+        rim.Color = iceSequence
+        rim.Parent = border
+        border.Parent = label
         label.Parent = object
-        local padding = Instance.new("UIPadding")
-        padding.PaddingTop = UDim.new(0.18, 0)
-        padding.PaddingBottom = UDim.new(0.18, 0)
-        padding.Parent = label
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(1, 0)
         corner.Parent = label
@@ -1994,21 +2004,7 @@ local function InstallOnionBranding()
         if object:IsA("ImageLabel") or object:IsA("ImageButton") then
             connect(object:GetPropertyChangedSignal("AbsoluteSize"), update)
         end
-        local properties = {}
-        if object:IsA("GuiObject") then table.insert(properties, "BackgroundColor3") end
-        if isText(object) then table.insert(properties, "TextColor3") end
-        if object:IsA("ImageLabel") or object:IsA("ImageButton") then table.insert(properties, "ImageColor3") end
-        if object:IsA("UIStroke") or object:IsA("UIGradient") then table.insert(properties, "Color") end
-        for _, property in ipairs(properties) do
-            connect(object:GetPropertyChangedSignal(property), function()
-                if roots[root] then style(object) end
-            end)
-        end
-        if object:IsA("Frame") then
-            connect(object:GetPropertyChangedSignal("AbsoluteSize"), function()
-                if roots[root] then style(object) end
-            end)
-        end
+        -- Apply once so original Config color pickers remain editable.
         update()
     end
     enroll = function(root)
@@ -2020,7 +2016,7 @@ local function InstallOnionBranding()
         if not root:IsA("ScreenGui") or watched[root] then return end
         watched[root] = true
         connect(root.DescendantAdded, function(object) observe(object, root) end)
-        if OnionCreatingInterface or branded(root.Name) or root.Name:lower():find("onion", 1, true) then enroll(root) end
+        if OnionCreatingInterface or branded(root.Name) or (root.Name:lower():find("onion", 1, true) or root.Name:lower():find("void", 1, true)) then enroll(root) end
         for _, object in ipairs(root:GetDescendants()) do observe(object, root) end
     end
     local containers = {game:GetService("CoreGui"), game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")}
@@ -2039,12 +2035,113 @@ local function InstallOnionBranding()
             end)
         end
     end
+    function VoidThemeController.Apply(name)
+        if not presets[name] and name ~= "Custom / Config" then return end
+        currentTheme = name
+        if presets[name] then
+            palette.Accent = presets[name][1]
+            iceSequence = makeSequence(presets[name])
+        end
+        for root in pairs(roots) do
+            if root.Parent then
+                for _, object in ipairs(root:GetDescendants()) do
+                    applied[object] = nil
+                    if name == "Custom / Config" then
+                        if object.Name == "OnionIceGradient" then object:Destroy()
+                        elseif originals[object] then
+                            for property,value in pairs(originals[object]) do pcall(function() object[property] = value end) end
+                        end
+                    else style(object) end
+                end
+            end
+        end
+    end
     return function()
         for _, connection in ipairs(connections) do connection:Disconnect() end
         table.clear(connections)
     end
 end
 local OnionBrandingCleanup = InstallOnionBranding()
+
+local function InstallVoidTextures(window)
+    local tab = window:AddTab("Textures", "visual-quantum")
+    local appearance = tab:addSection():addMenu("Hub Colors")
+    appearance:addDropdown("Color palette", "Void Black", {"Void Black", "Ice Blue", "Purple", "Rose", "Emerald", "Custom / Config"}, function(value)
+        VoidThemeController.Apply(value)
+    end)
+    appearance:addLabel("Custom colors", "Choose Custom / Config, then use the original Config. color controls.")
+    local menu = tab:addSection():addMenu("Sky Colors")
+    menu:addLabel("Local sky tint", "Atmosphere colors affect your view only. Existing skybox images remain. Disable to restore. Other fog settings may override this effect.")
+    local lighting = game:GetService("Lighting")
+    local state = {enabled = false, color = Color3.fromRGB(100, 175, 255), density = 0.35}
+    local atmosphere, original, owned
+    local function restore()
+        state.enabled = false
+        if atmosphere then
+            if owned then atmosphere:Destroy()
+            elseif original and atmosphere.Parent then
+                for property, value in pairs(original) do atmosphere[property] = value end
+            end
+        end
+        atmosphere, original, owned = nil, nil, false
+    end
+    local function apply()
+        if not state.enabled then return end
+        if not atmosphere or not atmosphere.Parent then
+            atmosphere = lighting:FindFirstChildOfClass("Atmosphere")
+            original, owned = {}, atmosphere == nil
+            if not atmosphere then
+                atmosphere = Instance.new("Atmosphere")
+                atmosphere.Name = "VoidHubAtmosphere"
+            else
+                for _, property in ipairs({"Color", "Decay", "Density", "Haze", "Glare", "Offset"}) do
+                    original[property] = atmosphere[property]
+                end
+            end
+            atmosphere.Parent = lighting
+        end
+        atmosphere.Color = state.color
+        atmosphere.Decay = state.color:Lerp(Color3.fromRGB(20, 22, 35), 0.55)
+        atmosphere.Density = state.density
+        atmosphere.Haze = 2
+        atmosphere.Glare = 0.15
+        atmosphere.Offset = 0
+    end
+    local toggle = menu:addToggle("Enable sky colors", false, function(enabled)
+        if enabled then state.enabled = true; apply() else restore() end
+    end)
+    local presets = {
+        ["Ice Blue"] = Color3.fromRGB(100, 175, 255),
+        ["Purple"] = Color3.fromRGB(165, 110, 255),
+        ["Rose"] = Color3.fromRGB(255, 130, 190),
+        ["Sunset"] = Color3.fromRGB(255, 150, 85),
+        ["Emerald"] = Color3.fromRGB(85, 235, 170),
+        ["Night"] = Color3.fromRGB(55, 65, 110),
+    }
+    menu:addDropdown("Sky preset", "Ice Blue", {"Ice Blue", "Purple", "Rose", "Sunset", "Emerald", "Night"}, function(value)
+        if presets[value] then state.color = presets[value]; apply() end
+    end)
+    menu:addTextbox("Custom sky HEX (#RRGGBB)", function(value)
+        local hex = tostring(value):gsub("^#", "")
+        if #hex ~= 6 or not hex:match("^%x+$") then
+            warn("[VoidHub] Sky color requires six hex digits, for example #80BFFF")
+            return
+        end
+        state.color = Color3.fromRGB(tonumber(hex:sub(1,2),16), tonumber(hex:sub(3,4),16), tonumber(hex:sub(5,6),16))
+        apply()
+    end)
+    menu:addSlider("Sky intensity", 0, 60, 35, function(value)
+        state.density = value / 100
+        apply()
+    end, false, 1)
+    menu:addButton("Restore original sky", function()
+        restore()
+        if toggle and type(toggle.Update) == "function" then toggle.Update(false) end
+    end)
+    local env = (getgenv and getgenv()) or _G
+    env.VoidHubRestoreSky = restore
+    game:GetService("Players").LocalPlayer.OnTeleport:Connect(restore)
+end
 
 	local fn = cloneref or function(arg)
 		return arg
@@ -8382,13 +8479,13 @@ Restock: %s
 		end
 
 		if not lua4 or not lua4.CreateWindow then
-			warn("[OnionHub ERROR] Critical: UI Library failed to load!")
+			warn("[VoidHub ERROR] Critical: UI Library failed to load!")
 			return
 		end
 
 		OnionCreatingInterface = true
 		local v22 = lua4:CreateWindow({
-			Title = "Onion",
+			Title = "VoidHub",
 			Subtitle = "Blox Fruit",
 			Version = "v1.1 Integrated",
 			Key = false,
@@ -8417,6 +8514,8 @@ Restock: %s
 			Misc = v22:AddTab("Misc", "misc-quantum"),
 			Web = v22:AddTab("Webhook", "cat-quantum"),
 		}
+        InstallVoidTextures(v22)
+        task.defer(function() VoidThemeController.Apply("Void Black") end)
 
 		local function fn30(arg, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 			arg7 = arg7 or {}
@@ -10437,7 +10536,7 @@ Restock: %s
 			local ok, result = xpcall(arg2, fn58)
 
 			if not ok then
-				warn(string.format("[OnionHub ERROR] Error while building UI Tab '%s':\n%s", arg, tostring(result)))
+				warn(string.format("[VoidHub ERROR] Error while building UI Tab '%s':\n%s", arg, tostring(result)))
 			end
 
 			return ok
@@ -17355,7 +17454,7 @@ Restock: %s
 			v22(tbl6, ...)
 		end
 
-		print(string.format("[OnionHub] %s initialized in %.4fs", arg, tick() - now))
+		print(string.format("[VoidHub] %s initialized in %.4fs", arg, tick() - now))
 	end
 
 	fn30("CoreSetup")
@@ -17394,7 +17493,7 @@ Restock: %s
 --  SECTION 0 — LOADER / BOOTSTRAP
 -- ═══════════════════════════════════════════════════════════════════════
 
-local ONIONHUB_VERSION   = "v1.1 Integrated"
+local ONIONHUB_VERSION   = "v1.2 VoidHub"
 local ONIONHUB_DISCORD   = "Not configured"
 local ONIONHUB_RAW       = "https://raw.githubusercontent.com/flazhy/QuantumOnyx/refs/heads/main/"
 -- ^ swap this to your own raw URL when you host the sub-modules yourself
@@ -17485,7 +17584,7 @@ end
 local function Notify(title, desc, duration)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
-            Title    = title or "OnionHub",
+            Title    = title or "VoidHub",
             Text     = desc  or "",
             Duration = duration or 5,
         })
@@ -17553,7 +17652,7 @@ local function ShowSplash(onReady)
     })
     New("TextLabel",{
         BackgroundTransparency=1,Position=UDim2.new(0,16,0,0),Size=UDim2.new(1,-80,1,0),
-        Font=Enum.Font.FredokaOne,Text="OnionHub — Blox Fruit",
+        Font=Enum.Font.FredokaOne,Text="VoidHub — Blox Fruits",
         TextColor3=Color3.fromRGB(0,220,255),TextSize=15,
         TextXAlignment=Enum.TextXAlignment.Left,ZIndex=203,Parent=Header
     })
@@ -17686,7 +17785,7 @@ ShowSplash(function()
     end)
     OnionEnvironment.OnionHubBooting = false
     if not ok then
-        warn("[OnionHub] Startup failed: " .. tostring(runtimeError))
-        Notify("OnionHub startup failed", "See the console for the full error. Rejoin before retrying.", 10)
+        warn("[VoidHub] Startup failed: " .. tostring(runtimeError))
+        Notify("VoidHub startup failed", "See the console for the full error. Rejoin before retrying.", 10)
     end
 end)
