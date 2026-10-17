@@ -2186,7 +2186,7 @@ local function InstallVoidTextures(window)
     local menu = tab:addSection():addMenu("Sky Colors")
     menu:addLabel("Skybox textures", "Enable sky colors, then choose a preset. Replaces the six sky images locally. Restore original sky removes the effect. HEX adjusts atmosphere only.")
     local lighting = game:GetService("Lighting")
-    local state = {enabled=false, preset="Purple", color=Color3.fromRGB(165,110,255), density=0.15}
+    local state = {enabled=false, preset="Purple", color=Color3.fromRGB(165,110,255), density=0.15, nightVisibility=true}
     local skies = {
         ["Purple"]={159454299,159454296,159454293,159454286,159454300,159454288},
         ["Ice Blue"]={135483466,135483484,135483461,135483495,135483499,135483475},
@@ -2195,6 +2195,27 @@ local function InstallVoidTextures(window)
     }
     local faces={"SkyboxBk","SkyboxDn","SkyboxFt","SkyboxLf","SkyboxRt","SkyboxUp"}
     local held, connections, sky, atmosphere = {}, {}, nil, nil
+    local lightingOriginal, writingLighting = nil, false
+    local function nightTime()
+        return lighting.ClockTime < 6 or lighting.ClockTime >= 18
+    end
+    local function lift(color, minimum)
+        return Color3.new(math.max(color.R,minimum),math.max(color.G,minimum),math.max(color.B,minimum))
+    end
+    local function updateNight()
+        if not state.enabled or not lightingOriginal then return end
+        local brighten = state.nightVisibility and nightTime()
+        writingLighting = true
+        lighting.Ambient = brighten and lift(lightingOriginal.Ambient,0.40) or lightingOriginal.Ambient
+        lighting.OutdoorAmbient = brighten and lift(lightingOriginal.OutdoorAmbient,0.50) or lightingOriginal.OutdoorAmbient
+        lighting.Brightness = brighten and math.max(lightingOriginal.Brightness,2) or lightingOriginal.Brightness
+        lighting.ExposureCompensation = brighten and math.max(lightingOriginal.ExposureCompensation,0.15) or lightingOriginal.ExposureCompensation
+        writingLighting = false
+        if atmosphere then
+            atmosphere.Density = nightTime() and math.min(state.density,0.08) or math.min(state.density,0.3)
+            atmosphere.Decay = state.color:Lerp(Color3.new(1,1,1),0.75)
+        end
+    end
     local function hold(object)
         if held[object] then return end
         held[object]=object.Parent
@@ -2204,6 +2225,10 @@ local function InstallVoidTextures(window)
         state.enabled=false
         for _,connection in ipairs(connections) do connection:Disconnect() end
         connections={}
+        if lightingOriginal then
+            for property,value in pairs(lightingOriginal) do lighting[property]=value end
+            lightingOriginal=nil
+        end
         if sky then sky:Destroy();sky=nil end
         if atmosphere then atmosphere:Destroy();atmosphere=nil end
         for object,parent in pairs(held) do pcall(function() object.Parent=parent end) end
@@ -2212,6 +2237,17 @@ local function InstallVoidTextures(window)
     local function apply()
         if not state.enabled then return end
         if not sky then
+            lightingOriginal={Ambient=lighting.Ambient,OutdoorAmbient=lighting.OutdoorAmbient,
+                Brightness=lighting.Brightness,ExposureCompensation=lighting.ExposureCompensation}
+            table.insert(connections,lighting:GetPropertyChangedSignal("ClockTime"):Connect(updateNight))
+            for property in pairs(lightingOriginal) do
+                local key=property
+                table.insert(connections,lighting:GetPropertyChangedSignal(key):Connect(function()
+                    if writingLighting or not lightingOriginal then return end
+                    lightingOriginal[key]=lighting[key]
+                    updateNight()
+                end))
+            end
             for _,object in ipairs(lighting:GetChildren()) do
                 if object:IsA("Sky") or object:IsA("Atmosphere") then hold(object) end
             end
@@ -2228,10 +2264,16 @@ local function InstallVoidTextures(window)
         atmosphere.Decay=state.color:Lerp(Color3.fromRGB(30,30,40),0.5)
         atmosphere.Density=state.density;atmosphere.Haze=0;atmosphere.Glare=0
         sky.Parent=lighting;atmosphere.Parent=lighting
+        updateNight()
     end
     local toggle=menu:addToggle("Enable sky colors",false,function(enabled)
         if enabled then state.enabled=true;apply() else restore() end
     end)
+    menu:addToggle("Night visibility",true,function(enabled)
+        state.nightVisibility=enabled
+        updateNight()
+    end)
+    menu:addLabel("Night adjustment", "Lifts ambient light without changing game time. Night fog density is limited automatically. Restore original sky restores lighting too.")
     local presetColors={Purple=Color3.fromRGB(165,110,255),["Ice Blue"]=Color3.fromRGB(100,175,255),Rose=Color3.fromRGB(255,130,190),Emerald=Color3.fromRGB(85,235,170)}
     menu:addDropdown("Sky preset","Purple",{"Purple","Ice Blue","Rose","Emerald"},function(value)
         if skies[value] then state.preset=value;state.color=presetColors[value];apply() end
