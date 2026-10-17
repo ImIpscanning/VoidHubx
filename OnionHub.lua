@@ -1873,6 +1873,10 @@ local function InstallOnionBranding()
             if ancestor:GetAttribute("VoidThemeUI") then return end
             ancestor=ancestor.Parent
         end
+        if object:GetAttribute("VoidIconStroke") then
+            set(object,"BackgroundColor3",palette.Accent)
+            return
+        end
         if styling[object] or applied[object] or currentTheme == "Custom / Config" then return end
         styling[object] = true
         local ok, reason = pcall(function()
@@ -1991,45 +1995,101 @@ local function InstallOnionBranding()
         if hasImage then
             label.ImageTransparency=0
             label.Visible=true
-            local fallback=Instance.new("TextLabel")
-            fallback.Name="VoidLogoFallback"
-            fallback.Size=UDim2.fromScale(1,1)
-            fallback.BackgroundTransparency=1
-            fallback.Text="V"
-            fallback.TextColor3=Color3.new(1,1,1)
-            fallback.TextScaled=true
-            fallback.Font=Enum.Font.GothamBold
-            fallback.Active=false
-            fallback.ZIndex=label.ZIndex+1
-            fallback.Parent=label
-            local function refreshLoaded()
-                if fallback.Parent then fallback.Visible=not label.IsLoaded end
-            end
-            connect(label:GetPropertyChangedSignal("IsLoaded"),refreshLoaded)
-            refreshLoaded()
             local assetId=imageId:match("rbxassetid://(%d+)") or imageId:match("[?&]id=(%d+)")
-            task.delay(5,function()
-                if not label.Parent or label.IsLoaded then return end
-                if assetId then
-                    label.Image="rbxthumb://type=Asset&id="..assetId.."&w=420&h=420"
-                    refreshLoaded()
-                end
-                task.delay(8,function()
-                    if label.Parent and not label.IsLoaded then
-                        warn("[VoidHub] Logo could not load as image or asset thumbnail. Check image ID, asset permissions and moderation status: "..tostring(assetId or imageId))
-                    end
-                end)
-            end)
+            if assetId then
+                label.Image="rbxthumb://type=Asset&id="..assetId.."&w=420&h=420"
+            end
         end
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(1, 0)
         corner.Parent = label
     end
+    -- Neutral vector strokes replace baked purple tab images, preserving their click targets.
+    local iconPaths = {
+        ["Home"]={{{3,11},{12,3},{21,11}},{{6,10},{6,21},{18,21},{18,10}},{{10,21},{10,15},{14,15},{14,21}}},
+        ["Main"]={{{12,3},{21,12},{12,21},{3,12},{12,3}},{{12,8},{12,13}},{{12,16},{12,17}}},
+        ["Sub Farm"]={{{4,3},{20,19}},{{20,3},{4,19}},{{3,16},{8,21}},{{16,21},{21,16}}},
+        ["Sea Event"]={{{3,14},{6,21},{18,21},{21,14},{12,10},{3,14}},{{12,3},{12,10}},{{8,6},{16,6}}},
+        ["Player"]={{{8,4},{16,4},{16,11},{8,11},{8,4}},{{4,21},{4,17},{8,14},{16,14},{20,17},{20,21}}},
+        ["Dragon Update"]={{{3,19},{7,10},{12,13},{17,4},{21,8},{18,16},{11,21},{3,19}}},
+        ["Dungeon"]={{{5,21},{5,7},{9,3},{15,3},{19,7},{19,21}},{{10,21},{10,14},{14,14},{14,21}}},
+        ["Trials"]={{{6,3},{18,3},{18,11},{12,17},{6,11},{6,3}},{{12,17},{12,21}},{{7,21},{17,21}}},
+        ["Travel"]={{{3,6},{9,3},{15,6},{21,3},{21,19},{15,22},{9,19},{3,22},{3,6}},{{9,3},{9,19}},{{15,6},{15,22}}},
+        ["Tiktok Shop"]={{{2,4},{5,4},{8,16},{19,16},{22,7},{6,7}},{{9,20},{10,20}},{{18,20},{19,20}}},
+        ["Misc."]={{{3,10},{9,10},{9,16},{3,16},{3,10}},{{15,10},{21,10},{21,16},{15,16},{15,10}},{{9,2},{15,2},{15,8},{9,8},{9,2}}},
+        ["Webhook"]={{{4,5},{20,5},{20,19},{4,19},{4,5}},{{4,6},{12,13},{20,6}}},
+        ["Textures"]={{{3,3},{21,3},{21,21},{3,21},{3,3}},{{3,16},{9,10},{14,15},{17,12},{21,16}}},
+        ["Config."]={{{8,3},{16,3},{21,8},{21,16},{16,21},{8,21},{3,16},{3,8},{8,3}},{{9,9},{15,9},{15,15},{9,15},{9,9}}},
+        ["Credits"]={{{5,4},{19,4},{19,21},{5,21},{5,4}},{{9,9},{15,9}},{{9,14},{15,14}},{{9,18},{13,18}}},
+    }
+    iconPaths.Misc=iconPaths["Misc."]
+    local function restyleFeatureIcon(object)
+        if not (object:IsA("ImageLabel") or object:IsA("ImageButton")) then return end
+        if object.Name=="OnionBrandMark" or object:FindFirstChild("OnionBrandMark") then return end
+        local size=object.AbsoluteSize
+        if size.X<8 or size.Y<8 or size.X>34 or size.Y>34 then return end
+        if object:FindFirstChild("VoidFeatureIcon") then return end
+        local paths
+        local parent=object.Parent
+        for level=1,2 do
+            if not parent or parent:IsA("ScreenGui") then break end
+            local matches={}
+            if parent:IsA("TextButton") or parent:IsA("TextLabel") then
+                local ownText=parent.Text:gsub("<[^>]+>",""):match("^%s*(.-)%s*$")
+                if iconPaths[ownText] then matches[ownText]=true end
+            end
+            for _,child in ipairs(parent:GetDescendants()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    local text=child.Text:gsub("<[^>]+>",""):match("^%s*(.-)%s*$")
+                    if iconPaths[text] then matches[text]=true end
+                end
+            end
+            local name,count=nil,0
+            for text in pairs(matches) do name=text;count=count+1 end
+            if count==1 then paths=iconPaths[name];break end
+            parent=parent.Parent
+        end
+        if not paths then return end
+        local overlay=Instance.new("Frame")
+        overlay.Name="VoidFeatureIcon";overlay.BackgroundTransparency=1
+        overlay.Size=UDim2.fromScale(1,1);overlay.Active=false;overlay.ZIndex=object.ZIndex+1
+        local lines={}
+        for _,path in ipairs(paths) do
+            for i=2,#path do
+                local a,b=path[i-1],path[i]
+                local line=Instance.new("Frame")
+                line:SetAttribute("VoidIconStroke",true)
+                line.BorderSizePixel=0;line.BackgroundColor3=palette.Accent
+                line.AnchorPoint=Vector2.new(0.5,0.5);line.ZIndex=overlay.ZIndex
+                line.Parent=overlay
+                lines[#lines+1]={frame=line,a=a,b=b}
+            end
+        end
+        local function layout()
+            local width,height=object.AbsoluteSize.X,object.AbsoluteSize.Y
+            for _,entry in ipairs(lines) do
+                local a,b=entry.a,entry.b
+                local dx,dy=(b[1]-a[1])*width/24,(b[2]-a[2])*height/24
+                entry.frame.Position=UDim2.fromScale((a[1]+b[1])/48,(a[2]+b[2])/48)
+                entry.frame.Size=UDim2.fromOffset(math.sqrt(dx*dx+dy*dy),math.max(1.5,width/13))
+                entry.frame.Rotation=math.deg(math.atan2(dy,dx))
+            end
+        end
+        overlay.Parent=object
+        object.ImageTransparency=1
+        connect(object:GetPropertyChangedSignal("AbsoluteSize"),layout)
+        connect(object:GetPropertyChangedSignal("ImageTransparency"),function()
+            if overlay.Parent and object.ImageTransparency~=1 then object.ImageTransparency=1 end
+        end)
+        layout()
+    end
+
     local function edit(object)
         if isText(object) then
             local updated = rename(object.Text)
             if updated ~= object.Text then object.Text = updated end
         end
+        restyleFeatureIcon(object)
         markLogo(object)
         style(object)
     end
@@ -2133,7 +2193,12 @@ local function InstallOnionBranding()
             if not roots[root] and (branded(object.Name) or (isText(object) and branded(object.Text))) then
                 enroll(root)
             end
-            if roots[root] then edit(object) end
+            if roots[root] then
+                edit(object)
+                if isText(object) and object.Parent then
+                    for _,sibling in ipairs(object.Parent:GetDescendants()) do restyleFeatureIcon(sibling) end
+                end
+            end
         end
         if isText(object) then
             connect(object:GetPropertyChangedSignal("Text"), function()
