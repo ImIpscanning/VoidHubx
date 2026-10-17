@@ -2036,12 +2036,14 @@ local function InstallOnionBranding()
             local matches={}
             if parent:IsA("TextButton") or parent:IsA("TextLabel") then
                 local ownText=parent.Text:gsub("<[^>]+>",""):match("^%s*(.-)%s*$")
-                if iconPaths[ownText] then matches[ownText]=true end
+                if iconPaths[ownText] and parent.AbsoluteSize.X<=220 and parent.AbsoluteSize.Y<=48 then matches[ownText]=true end
             end
             for _,child in ipairs(parent:GetDescendants()) do
                 if child:IsA("TextLabel") or child:IsA("TextButton") then
                     local text=child.Text:gsub("<[^>]+>",""):match("^%s*(.-)%s*$")
-                    if iconPaths[text] then matches[text]=true end
+                    local dx=child.AbsolutePosition.X-(object.AbsolutePosition.X+size.X)
+                    local dy=math.abs(child.AbsolutePosition.Y+child.AbsoluteSize.Y/2-object.AbsolutePosition.Y-size.Y/2)
+                    if iconPaths[text] and dx>=-4 and dx<=24 and dy<=math.max(size.Y,child.AbsoluteSize.Y)/2 then matches[text]=true end
                 end
             end
             local name,count=nil,0
@@ -2049,7 +2051,24 @@ local function InstallOnionBranding()
             if count==1 then paths=iconPaths[name];break end
             parent=parent.Parent
         end
-        if not paths then return end
+        if not paths then
+            -- Native dropdowns may bake their blue color into the image pixels.
+            -- Replace only named chevrons or right-edge icons in input fields.
+            local name=object.Name:lower()
+            local arrow=name:find("chevron",1,true) or name:find("arrow",1,true)
+            local host=object.Parent
+            if not arrow and host and host:IsA("GuiObject") then
+                local hs=host.AbsoluteSize
+                local right=host.AbsolutePosition.X+hs.X-object.AbsolutePosition.X-size.X
+                local input=host:IsA("TextBox")
+                for _,child in ipairs(host:GetChildren()) do
+                    if child:IsA("TextBox") then input=true end
+                end
+                arrow=input and hs.X>=80 and hs.Y<=60 and right>=-4 and right<=28
+            end
+            if not arrow then return end
+            paths={{{7,9},{12,4},{17,9}},{{7,15},{12,20},{17,15}}}
+        end
         local overlay=Instance.new("Frame")
         overlay.Name="VoidFeatureIcon";overlay.BackgroundTransparency=1
         overlay.Size=UDim2.fromScale(1,1);overlay.Active=false;overlay.ZIndex=object.ZIndex+1
@@ -2086,6 +2105,10 @@ local function InstallOnionBranding()
 
     local function edit(object)
         if isText(object) then
+            -- Restore the previous Onion Project branding font conversion.
+            if object.Font==Enum.Font.FredokaOne or object.Font==Enum.Font.Cartoon then
+                object.Font=Enum.Font.GothamMedium
+            end
             local updated = rename(object.Text)
             if updated ~= object.Text then object.Text = updated end
         end
@@ -2201,6 +2224,7 @@ local function InstallOnionBranding()
             end
         end
         if isText(object) then
+            connect(object:GetPropertyChangedSignal("Font"), update)
             connect(object:GetPropertyChangedSignal("Text"), function()
                 update()
                 if object.Text == "Theme Manager" then scheduleThemeManager(root) end
