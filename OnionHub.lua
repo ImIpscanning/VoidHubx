@@ -1845,6 +1845,11 @@ local function InstallOnionBranding()
         ["Rose"] = {Color3.fromRGB(235,90,155), Color3.fromRGB(255,225,240), Color3.fromRGB(255,145,195)},
         ["Emerald"] = {Color3.fromRGB(45,200,145), Color3.fromRGB(220,255,240), Color3.fromRGB(100,245,200)},
     }
+    presets.Black = presets["Void Black"]
+    presets.White = {Color3.fromRGB(70,75,90),Color3.fromRGB(125,135,150),Color3.fromRGB(90,100,120)}
+    presets.Crimson = {Color3.fromRGB(230,65,85),Color3.fromRGB(255,195,205),Color3.fromRGB(255,105,120)}
+    presets.Ocean = {Color3.fromRGB(35,150,235),Color3.fromRGB(190,235,255),Color3.fromRGB(40,210,235)}
+    presets.Gold = {Color3.fromRGB(230,175,50),Color3.fromRGB(255,240,190),Color3.fromRGB(255,210,100)}
     local palette = {Background = Color3.fromRGB(8,8,11), Surface = Color3.fromRGB(18,18,23),
         Border = Color3.fromRGB(65,65,75), Accent = Color3.fromRGB(220,220,230),
         Text = Color3.fromRGB(240,240,245), Muted = Color3.fromRGB(160,160,175)}
@@ -1863,6 +1868,11 @@ local function InstallOnionBranding()
         if object[property] ~= value then object[property] = value end
     end
     local function style(object)
+        local ancestor=object
+        while ancestor do
+            if ancestor:GetAttribute("VoidThemeUI") then return end
+            ancestor=ancestor.Parent
+        end
         if styling[object] or applied[object] or currentTheme == "Custom / Config" then return end
         styling[object] = true
         local ok, reason = pcall(function()
@@ -1990,6 +2000,98 @@ local function InstallOnionBranding()
         markLogo(object)
         style(object)
     end
+    local function extendThemeManager(root)
+        if not root.Parent then return false end
+        local cards = {}
+        for _, node in ipairs(root:GetDescendants()) do
+            if (node:IsA("TextLabel") or node:IsA("TextButton")) and
+                (node.Text == "Purple" or node.Text == "Crimson" or node.Text == "Ocean") then
+                local row = node.Parent
+                while row and row ~= root do
+                    local hasApply = false
+                    for _, child in ipairs(row:GetDescendants()) do
+                        if (child:IsA("TextButton") or child:IsA("ImageButton")) then hasApply = true; break end
+                    end
+                    if hasApply then cards[node.Text] = row; break end
+                    row = row.Parent
+                end
+            end
+        end
+        local first = cards.Purple or cards.Crimson or cards.Ocean
+        if not first then return false end
+        local host = first.Parent
+        if host:FindFirstChild("VoidThemeChoices") then return true end
+        local top, bottom, count = math.huge, -math.huge, 0
+        for _, row in pairs(cards) do
+            if row.Parent == host then
+                top = math.min(top, row.AbsolutePosition.Y)
+                bottom = math.max(bottom, row.AbsolutePosition.Y + row.AbsoluteSize.Y)
+                count = count + 1
+            end
+        end
+        if count < 2 or bottom - top < 60 then return false end
+        local scale = first.Size.Y.Offset > 0 and first.AbsoluteSize.Y / first.Size.Y.Offset or 1
+        local scroll = Instance.new("ScrollingFrame")
+        scroll.Name = "VoidThemeChoices"
+        scroll:SetAttribute("VoidThemeUI",true)
+        scroll.BackgroundTransparency = 1
+        scroll.BorderSizePixel = 0
+        scroll.Position = UDim2.new(first.Position.X.Scale, first.Position.X.Offset, 0, (top-host.AbsolutePosition.Y)/scale)
+        scroll.Size = UDim2.new(first.Size.X.Scale, first.Size.X.Offset, 0, (bottom-top)/scale)
+        scroll.ScrollBarThickness = 3
+        scroll.ScrollBarImageColor3 = Color3.fromRGB(180,180,195)
+        scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        scroll.CanvasSize = UDim2.new()
+        scroll.ZIndex = first.ZIndex + 3
+        for _, row in pairs(cards) do if row.Parent == host then row.Visible = false end end
+        local list = Instance.new("UIListLayout")
+        list.Padding = UDim.new(0,6)
+        list.SortOrder = Enum.SortOrder.LayoutOrder
+        list.Parent = scroll
+        for index,name in ipairs({"Black","White","Ice Blue","Purple","Crimson","Ocean","Rose","Emerald","Gold"}) do
+            local colors = presets[name]
+            local row = Instance.new("Frame")
+            row.Size = UDim2.new(1,-6,0,54)
+            row.BackgroundColor3 = Color3.fromRGB(23,23,29)
+            row.BorderSizePixel = 0
+            row.LayoutOrder = index
+            row.ZIndex = scroll.ZIndex+1
+            row.Parent = scroll
+            local corner = Instance.new("UICorner");corner.CornerRadius=UDim.new(0,9);corner.Parent=row
+            for i=1,3 do
+                local dot=Instance.new("Frame")
+                dot.Size=UDim2.fromOffset(16,16)
+                dot.Position=UDim2.new(0,10+(i-1)*13,0.5,-8)
+                dot.BackgroundColor3=colors[i];dot.BorderSizePixel=0;dot.ZIndex=row.ZIndex+1;dot.Parent=row
+                local round=Instance.new("UICorner");round.CornerRadius=UDim.new(1,0);round.Parent=dot
+            end
+            local label=Instance.new("TextLabel")
+            label.BackgroundTransparency=1;label.Position=UDim2.new(0,60,0,0);label.Size=UDim2.new(1,-146,1,0)
+            label.Text=name;label.TextColor3=Color3.fromRGB(235,235,245);label.Font=Enum.Font.GothamBold;label.TextSize=12
+            label.TextXAlignment=Enum.TextXAlignment.Left;label.ZIndex=row.ZIndex+1;label.Parent=row
+            local button=Instance.new("TextButton")
+            button.Size=UDim2.new(0,70,0,28);button.Position=UDim2.new(1,-80,0.5,-14)
+            button.BackgroundColor3=Color3.fromRGB(45,45,57);button.TextColor3=Color3.new(1,1,1)
+            button.Text="Apply";button.Font=Enum.Font.GothamBold;button.TextSize=11;button.ZIndex=row.ZIndex+1;button.Parent=row
+            local rounded=Instance.new("UICorner");rounded.CornerRadius=UDim.new(0,7);rounded.Parent=button
+            button.MouseButton1Click:Connect(function() VoidThemeController.Apply(name) end)
+        end
+        scroll.Parent=host
+        return true
+    end
+    local pendingManagers = setmetatable({}, {__mode="k"})
+    local function scheduleThemeManager(root)
+        if pendingManagers[root] then return end
+        pendingManagers[root]=true
+        task.spawn(function()
+            for attempt=1,12 do
+                task.wait(0.15)
+                if not root.Parent or extendThemeManager(root) then break end
+            end
+            pendingManagers[root]=nil
+        end)
+    end
+
     local enroll, observe
     observe = function(object, root)
         if tracked[object] then return end
@@ -2000,7 +2102,13 @@ local function InstallOnionBranding()
             end
             if roots[root] then edit(object) end
         end
-        if isText(object) then connect(object:GetPropertyChangedSignal("Text"), update) end
+        if isText(object) then
+            connect(object:GetPropertyChangedSignal("Text"), function()
+                update()
+                if object.Text == "Theme Manager" then scheduleThemeManager(root) end
+            end)
+            if object.Text == "Theme Manager" then scheduleThemeManager(root) end
+        end
         if object:IsA("ImageLabel") or object:IsA("ImageButton") then
             connect(object:GetPropertyChangedSignal("AbsoluteSize"), update)
         end
@@ -2038,6 +2146,11 @@ local function InstallOnionBranding()
     function VoidThemeController.Apply(name)
         if not presets[name] and name ~= "Custom / Config" then return end
         currentTheme = name
+        local white=name=="White"
+        palette.Background=white and Color3.fromRGB(235,238,244) or Color3.fromRGB(8,8,11)
+        palette.Surface=white and Color3.fromRGB(250,251,255) or Color3.fromRGB(18,18,23)
+        palette.Text=white and Color3.fromRGB(25,28,38) or Color3.fromRGB(240,240,245)
+        palette.Muted=white and Color3.fromRGB(85,90,105) or Color3.fromRGB(160,160,175)
         if presets[name] then
             palette.Accent = presets[name][1]
             iceSequence = makeSequence(presets[name])
@@ -2066,80 +2179,75 @@ local OnionBrandingCleanup = InstallOnionBranding()
 local function InstallVoidTextures(window)
     local tab = window:AddTab("Textures", "visual-quantum")
     local appearance = tab:addSection():addMenu("Hub Colors")
-    appearance:addDropdown("Color palette", "Void Black", {"Void Black", "Ice Blue", "Purple", "Rose", "Emerald", "Custom / Config"}, function(value)
+    appearance:addDropdown("Color palette", "Black", {"Black", "White", "Ice Blue", "Purple", "Crimson", "Ocean", "Rose", "Emerald", "Gold", "Custom / Config"}, function(value)
         VoidThemeController.Apply(value)
     end)
     appearance:addLabel("Custom colors", "Choose Custom / Config, then use the original Config. color controls.")
     local menu = tab:addSection():addMenu("Sky Colors")
-    menu:addLabel("Local sky tint", "Atmosphere colors affect your view only. Existing skybox images remain. Disable to restore. Other fog settings may override this effect.")
+    menu:addLabel("Skybox textures", "Enable sky colors, then choose a preset. Replaces the six sky images locally. Restore original sky removes the effect. HEX adjusts atmosphere only.")
     local lighting = game:GetService("Lighting")
-    local state = {enabled = false, color = Color3.fromRGB(100, 175, 255), density = 0.35}
-    local atmosphere, original, owned
+    local state = {enabled=false, preset="Purple", color=Color3.fromRGB(165,110,255), density=0.15}
+    local skies = {
+        ["Purple"]={159454299,159454296,159454293,159454286,159454300,159454288},
+        ["Ice Blue"]={135483466,135483484,135483461,135483495,135483499,135483475},
+        ["Rose"]={271042516,271077243,271042556,271042310,271042467,271077958},
+        ["Emerald"]={921882045,921881907,921882121,921881811,921881989,921882259},
+    }
+    local faces={"SkyboxBk","SkyboxDn","SkyboxFt","SkyboxLf","SkyboxRt","SkyboxUp"}
+    local held, connections, sky, atmosphere = {}, {}, nil, nil
+    local function hold(object)
+        if held[object] then return end
+        held[object]=object.Parent
+        object.Parent=nil
+    end
     local function restore()
-        state.enabled = false
-        if atmosphere then
-            if owned then atmosphere:Destroy()
-            elseif original and atmosphere.Parent then
-                for property, value in pairs(original) do atmosphere[property] = value end
-            end
-        end
-        atmosphere, original, owned = nil, nil, false
+        state.enabled=false
+        for _,connection in ipairs(connections) do connection:Disconnect() end
+        connections={}
+        if sky then sky:Destroy();sky=nil end
+        if atmosphere then atmosphere:Destroy();atmosphere=nil end
+        for object,parent in pairs(held) do pcall(function() object.Parent=parent end) end
+        held={}
     end
     local function apply()
         if not state.enabled then return end
-        if not atmosphere or not atmosphere.Parent then
-            atmosphere = lighting:FindFirstChildOfClass("Atmosphere")
-            original, owned = {}, atmosphere == nil
-            if not atmosphere then
-                atmosphere = Instance.new("Atmosphere")
-                atmosphere.Name = "VoidHubAtmosphere"
-            else
-                for _, property in ipairs({"Color", "Decay", "Density", "Haze", "Glare", "Offset"}) do
-                    original[property] = atmosphere[property]
-                end
+        if not sky then
+            for _,object in ipairs(lighting:GetChildren()) do
+                if object:IsA("Sky") or object:IsA("Atmosphere") then hold(object) end
             end
-            atmosphere.Parent = lighting
+            sky=Instance.new("Sky");sky.Name="VoidHubSky"
+            sky.CelestialBodiesShown=false;sky.StarCount=0
+            atmosphere=Instance.new("Atmosphere");atmosphere.Name="VoidHubAtmosphere"
+            table.insert(connections,lighting.ChildAdded:Connect(function(object)
+                if state.enabled and object~=sky and object~=atmosphere and (object:IsA("Sky") or object:IsA("Atmosphere")) then hold(object) end
+            end))
         end
-        atmosphere.Color = state.color
-        atmosphere.Decay = state.color:Lerp(Color3.fromRGB(20, 22, 35), 0.55)
-        atmosphere.Density = state.density
-        atmosphere.Haze = 2
-        atmosphere.Glare = 0.15
-        atmosphere.Offset = 0
+        local ids=skies[state.preset]
+        for i,face in ipairs(faces) do sky[face]="rbxassetid://"..ids[i] end
+        atmosphere.Color=state.color
+        atmosphere.Decay=state.color:Lerp(Color3.fromRGB(30,30,40),0.5)
+        atmosphere.Density=state.density;atmosphere.Haze=0;atmosphere.Glare=0
+        sky.Parent=lighting;atmosphere.Parent=lighting
     end
-    local toggle = menu:addToggle("Enable sky colors", false, function(enabled)
-        if enabled then state.enabled = true; apply() else restore() end
+    local toggle=menu:addToggle("Enable sky colors",false,function(enabled)
+        if enabled then state.enabled=true;apply() else restore() end
     end)
-    local presets = {
-        ["Ice Blue"] = Color3.fromRGB(100, 175, 255),
-        ["Purple"] = Color3.fromRGB(165, 110, 255),
-        ["Rose"] = Color3.fromRGB(255, 130, 190),
-        ["Sunset"] = Color3.fromRGB(255, 150, 85),
-        ["Emerald"] = Color3.fromRGB(85, 235, 170),
-        ["Night"] = Color3.fromRGB(55, 65, 110),
-    }
-    menu:addDropdown("Sky preset", "Ice Blue", {"Ice Blue", "Purple", "Rose", "Sunset", "Emerald", "Night"}, function(value)
-        if presets[value] then state.color = presets[value]; apply() end
+    local presetColors={Purple=Color3.fromRGB(165,110,255),["Ice Blue"]=Color3.fromRGB(100,175,255),Rose=Color3.fromRGB(255,130,190),Emerald=Color3.fromRGB(85,235,170)}
+    menu:addDropdown("Sky preset","Purple",{"Purple","Ice Blue","Rose","Emerald"},function(value)
+        if skies[value] then state.preset=value;state.color=presetColors[value];apply() end
     end)
-    menu:addTextbox("Custom sky HEX (#RRGGBB)", function(value)
-        local hex = tostring(value):gsub("^#", "")
-        if #hex ~= 6 or not hex:match("^%x+$") then
-            warn("[VoidHub] Sky color requires six hex digits, for example #80BFFF")
-            return
-        end
-        state.color = Color3.fromRGB(tonumber(hex:sub(1,2),16), tonumber(hex:sub(3,4),16), tonumber(hex:sub(5,6),16))
-        apply()
+    menu:addTextbox("Atmosphere HEX (#RRGGBB)",function(value)
+        local hex=tostring(value):gsub("^#","")
+        if #hex~=6 or not hex:match("^%x+$") then return end
+        state.color=Color3.fromRGB(tonumber(hex:sub(1,2),16),tonumber(hex:sub(3,4),16),tonumber(hex:sub(5,6),16));apply()
     end)
-    menu:addSlider("Sky intensity", 0, 60, 35, function(value)
-        state.density = value / 100
-        apply()
-    end, false, 1)
-    menu:addButton("Restore original sky", function()
+    menu:addSlider("Atmosphere intensity",0,50,15,function(value) state.density=value/100;apply() end,false,1)
+    menu:addButton("Restore original sky",function()
         restore()
-        if toggle and type(toggle.Update) == "function" then toggle.Update(false) end
+        if toggle and type(toggle.Update)=="function" then toggle.Update(false) end
     end)
-    local env = (getgenv and getgenv()) or _G
-    env.VoidHubRestoreSky = restore
+    local env=(getgenv and getgenv()) or _G
+    env.VoidHubRestoreSky=restore
     game:GetService("Players").LocalPlayer.OnTeleport:Connect(restore)
 end
 
